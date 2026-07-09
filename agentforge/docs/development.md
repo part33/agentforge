@@ -19,6 +19,16 @@ Implemented behavior:
 - Pi session mirror entries via `pi.appendEntry`
 - status/footer update for latest workflow phase
 
+## Second Slice
+
+The second slice adds the first medium-control phase protocol:
+
+- plan artifact JSON extraction from assistant output
+- plan artifact validation
+- conversion from accepted plan steps to workflow tasks
+- `plan.accepted` and `plan.invalid` workflow events
+- automatic `planning -> waiting_approval` transition when the plan artifact is valid
+
 ## Verification
 
 PowerShell may block `npm.ps1` on Windows. Use `npm.cmd`:
@@ -38,11 +48,11 @@ node ./bin/agentforge.mjs --help
 
 ## Next Slice
 
-Implement structured phase artifacts:
+Implement the approval gate:
 
-- Define plan artifact schema.
-- Parse and validate model output.
-- Keep invalid output in planning phase.
-- Add reportable workflow events for parse failures.
+- Render an approval selector in TUI mode.
+- Support approve, revise, and cancel.
+- Persist the approval decision.
+- Keep text fallback for non-TUI modes.
 
-The goal is to move from deterministic stub transitions to validated medium-control phase progression.
+The goal is to prevent execution until a structured plan has been explicitly approved.

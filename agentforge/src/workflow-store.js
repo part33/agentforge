@@ -96,6 +96,45 @@ export function transitionWorkflow(run, nextPhase, options = {}) {
   return nextRun;
 }
 
+export function appendWorkflowEvent(run, event) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        timestamp: now,
+        ...event,
+      },
+    ],
+  };
+}
+
+export function applyPlanArtifact(run, artifact, tasks) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    updatedAt: now,
+    planArtifact: artifact,
+    tasks,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "plan.accepted",
+        timestamp: now,
+        message: "Structured plan artifact accepted.",
+        data: {
+          stepCount: artifact.steps.length,
+          verificationCommandCount: artifact.verificationCommands.length,
+        },
+      },
+    ],
+  };
+}
+
 export function summarizeWorkflow(run) {
   return {
     id: run.id,

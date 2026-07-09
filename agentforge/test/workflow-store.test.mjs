@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  applyPlanArtifact,
   createWorkflowRun,
   summarizeWorkflow,
   transitionWorkflow,
@@ -62,4 +63,23 @@ test("summarizeWorkflow returns session-safe state", () => {
     "updatedAt",
     "verificationCount",
   ]);
+});
+
+test("applyPlanArtifact stores plan and task state", () => {
+  const run = transitionWorkflow(createWorkflowRun("Goal", { id: "wf-test" }), "planning");
+  const artifact = {
+    goal: "Goal",
+    summary: "Plan.",
+    steps: [{ id: "step-1", title: "Do thing", rationale: "Needed.", status: "pending", expectedFiles: [] }],
+    risks: [],
+    verificationCommands: [],
+    researchSources: [],
+  };
+  const tasks = [{ id: "step-1", phase: "execute", title: "Do thing", status: "pending" }];
+
+  const next = applyPlanArtifact(run, artifact, tasks);
+
+  assert.equal(next.planArtifact.summary, "Plan.");
+  assert.equal(next.tasks.length, 1);
+  assert.equal(next.events.at(-1).type, "plan.accepted");
 });
