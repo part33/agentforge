@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { parsePlanArtifactFromText, planArtifactToTasks } from "../../src/artifacts.js";
 import {
+  applyApprovalDecision,
   appendWorkflowEvent,
   applyPlanArtifact,
   summarizeWorkflow,
@@ -18,7 +19,8 @@ type WorkflowRun = ReturnType<typeof summarizeWorkflow> & {
 };
 
 function formatStatus(summary: ReturnType<typeof summarizeWorkflow>): string {
-  return `AgentForge | ${summary.currentPhase} | tasks 0/${summary.taskCount} | sources ${summary.sourceCount} | verify ${summary.verificationCount}`;
+  const approval = summary.approvalDecision ? ` | approval ${summary.approvalDecision}` : "";
+  return `AgentForge | ${summary.currentPhase} | tasks 0/${summary.taskCount} | sources ${summary.sourceCount} | verify ${summary.verificationCount}${approval}`;
 }
 
 function setWorkflowStatus(ctx: ExtensionContext, run: WorkflowRun) {
@@ -118,6 +120,148 @@ async function showLatestStatus(ctx: ExtensionCommandContext) {
   ctx.ui.notify(`${run.id}: ${run.currentPhase} (${run.status})`, "info");
 }
 
+function formatApprovalSummary(run: any): string {
+  const plan = run.planArtifact;
+  const lines = [
+    `Goal: ${run.goal}`,
+    "",
+    `Plan: ${plan?.summary ?? "No plan summary."}`,
+    "",
+    "Steps:",
+    ...(plan?.steps ?? []).map((step: any, index: number) => `${index + 1}. ${step.title}`),
+  ];
+
+  if (plan?.risks?.length) {
+    lines.push("", "Risks:", ...plan.risks.map((risk: string) => `- ${risk}`));
+  }
+
+  if (plan?.verificationCommands?.length) {
+    lines.push(
+      "",
+      "Verification:",
+      ...plan.verificationCommands.map((item: any) => `- ${item.command}: ${item.reason}`),
+    );
+  }
+
+  return lines.join("\n");
+}
+
+async function applyAndPersistApproval(
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+  run: any,
+  decision: "approved" | "revision_requested" | "cancelled",
+  note: string,
+) {
+  const store = new WorkflowStore(ctx.cwd);
+  let nextRun = applyApprovalDecision(run, decision, { note });
+
+  if (decision === "approved") {
+    nextRun = transitionWorkflow(nextRun, "executing", {
+      summary: "Plan approved; execution phase started.",
+    });
+  } else if (decision === "revision_requested") {
+    nextRun = transitionWorkflow(nextRun, "planning", {
+      summary: "User requested plan revision.",
+    });
+  } else {
+    nextRun = transitionWorkflow(nextRun, "cancelled", {
+      status: "cancelled",
+      phaseStatus: "done",
+      completed: true,
+      summary: "Workflow cancelled during approval.",
+    });
+  }
+
+  await store.updateRun(nextRun);
+  mirrorWorkflow(pi, nextRun);
+  setWorkflowStatus(ctx, nextRun);
+  return nextRun;
+}
+
+async function approveLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandContext) {
+  const store = new WorkflowStore(ctx.cwd);
+  const run = await store.loadLatestRun();
+  if (!run) {
+    ctx.ui.notify("No AgentForge workflow found for this project.", "warning");
+    return;
+  }
+  if (run.currentPhase !== "waiting_approval") {
+    ctx.ui.notify(`Latest workflow is in ${run.currentPhase}, not waiting_approval.`, "warning");
+    return;
+  }
+
+  const summary = formatApprovalSummary(run);
+  const options = ["Approve and execute", "Request revision", "Cancel workflow"];
+  let choice: string | undefined;
+
+  if (ctx.hasUI) {
+    choice = await ctx.ui.select(`AgentForge Plan Approval\n\n${summary}`, options);
+  } else {
+    ctx.ui.notify("UI unavailable; use /workflow-approve approve|revise|cancel.", "warning");
+    return;
+  }
+
+  if (!choice) {
+    ctx.ui.notify("Approval selection cancelled.", "info");
+    return;
+  }
+
+  if (choice === "Approve and execute") {
+    await applyAndPersistApproval(pi, ctx, run, "approved", "User approved the plan.");
+    ctx.ui.notify("AgentForge plan approved. Execution phase is ready.", "info");
+    return;
+  }
+
+  if (choice === "Request revision") {
+    const nextRun = await applyAndPersistApproval(pi, ctx, run, "revision_requested", "User requested plan revision.");
+    ctx.ui.notify("AgentForge plan revision requested.", "info");
+    pi.sendUserMessage([
+      { type: "text", text: buildPlanningPrompt(nextRun) },
+      { type: "text", text: "\nRevise the previous plan based on the approval feedback. Return JSON only." },
+    ]);
+    return;
+  }
+
+  await applyAndPersistApproval(pi, ctx, run, "cancelled", "User cancelled the workflow.");
+  ctx.ui.notify("AgentForge workflow cancelled.", "info");
+}
+
+async function approveLatestWorkflowFromText(pi: ExtensionAPI, ctx: ExtensionCommandContext, args: string) {
+  const normalized = args.trim().toLowerCase();
+  if (!normalized) {
+    await approveLatestWorkflow(pi, ctx);
+    return;
+  }
+
+  const decisionMap: Record<string, "approved" | "revision_requested" | "cancelled"> = {
+    approve: "approved",
+    approved: "approved",
+    revise: "revision_requested",
+    revision: "revision_requested",
+    cancel: "cancelled",
+    cancelled: "cancelled",
+  };
+  const decision = decisionMap[normalized];
+  if (!decision) {
+    ctx.ui.notify("Usage: /workflow-approve [approve|revise|cancel]", "warning");
+    return;
+  }
+
+  const store = new WorkflowStore(ctx.cwd);
+  const run = await store.loadLatestRun();
+  if (!run) {
+    ctx.ui.notify("No AgentForge workflow found for this project.", "warning");
+    return;
+  }
+  if (run.currentPhase !== "waiting_approval") {
+    ctx.ui.notify(`Latest workflow is in ${run.currentPhase}, not waiting_approval.`, "warning");
+    return;
+  }
+  await applyAndPersistApproval(pi, ctx, run, decision, `Text approval decision: ${decision}.`);
+  ctx.ui.notify(`AgentForge approval decision recorded: ${decision}.`, "info");
+}
+
 async function handlePlanningMessage(pi: ExtensionAPI, ctx: ExtensionContext, message: any) {
   const store = new WorkflowStore(ctx.cwd);
   let run = await store.loadLatestRun();
@@ -167,6 +311,13 @@ export default function agentForgeWorkflow(pi: ExtensionAPI) {
     description: "Show the latest AgentForge workflow status",
     handler: async (_args, ctx) => {
       await showLatestStatus(ctx);
+    },
+  });
+
+  pi.registerCommand("workflow-approve", {
+    description: "Approve, revise, or cancel the latest AgentForge plan",
+    handler: async (args, ctx) => {
+      await approveLatestWorkflowFromText(pi, ctx, args);
     },
   });
 

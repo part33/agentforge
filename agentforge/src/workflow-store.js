@@ -135,6 +135,37 @@ export function applyPlanArtifact(run, artifact, tasks) {
   };
 }
 
+export function applyApprovalDecision(run, decision, options = {}) {
+  if (!["approved", "revision_requested", "cancelled"].includes(decision)) {
+    throw new Error(`Unknown approval decision: ${decision}`);
+  }
+
+  if (run.currentPhase !== "waiting_approval") {
+    throw new Error(`Cannot apply approval decision from phase: ${run.currentPhase}`);
+  }
+
+  const now = new Date().toISOString();
+  const approval = {
+    decision,
+    decidedAt: now,
+    note: options.note,
+  };
+  const event = {
+    id: randomUUID(),
+    type: "approval.decided",
+    timestamp: now,
+    message: options.note ?? `Approval decision: ${decision}.`,
+    data: approval,
+  };
+
+  return {
+    ...run,
+    approval,
+    updatedAt: now,
+    events: [...run.events, event],
+  };
+}
+
 export function summarizeWorkflow(run) {
   return {
     id: run.id,
@@ -144,6 +175,7 @@ export function summarizeWorkflow(run) {
     taskCount: run.tasks.length,
     sourceCount: run.sources.length,
     verificationCount: run.verificationResults.length,
+    approvalDecision: run.approval?.decision,
     updatedAt: run.updatedAt,
   };
 }

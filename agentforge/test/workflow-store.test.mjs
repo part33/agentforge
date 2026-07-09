@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  applyApprovalDecision,
   applyPlanArtifact,
   createWorkflowRun,
   summarizeWorkflow,
@@ -54,6 +55,7 @@ test("summarizeWorkflow returns session-safe state", () => {
   const summary = summarizeWorkflow(run);
 
   assert.deepEqual(Object.keys(summary).sort(), [
+    "approvalDecision",
     "currentPhase",
     "goal",
     "id",
@@ -82,4 +84,20 @@ test("applyPlanArtifact stores plan and task state", () => {
   assert.equal(next.planArtifact.summary, "Plan.");
   assert.equal(next.tasks.length, 1);
   assert.equal(next.events.at(-1).type, "plan.accepted");
+});
+
+test("applyApprovalDecision records approval from waiting_approval phase", () => {
+  const run = transitionWorkflow(createWorkflowRun("Goal", { id: "wf-test" }), "waiting_approval");
+
+  const next = applyApprovalDecision(run, "approved", { note: "Looks good." });
+
+  assert.equal(next.approval.decision, "approved");
+  assert.equal(next.approval.note, "Looks good.");
+  assert.equal(next.events.at(-1).type, "approval.decided");
+});
+
+test("applyApprovalDecision rejects non-approval phases", () => {
+  const run = transitionWorkflow(createWorkflowRun("Goal", { id: "wf-test" }), "planning");
+
+  assert.throws(() => applyApprovalDecision(run, "approved"), /Cannot apply approval decision/);
 });
