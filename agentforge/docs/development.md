@@ -73,6 +73,26 @@ The sixth slice adds policy controls:
 - Pi `tool_call` hook enforces policy decisions
 - policy events are persisted and included in reports
 
+## Seventh Slice
+
+The seventh slice adds research/source evidence:
+
+- `ResearchConnector` coordinates provider search, page reading, URL canonicalization, deduplication, and summaries
+- default manual provider extracts URLs from `/workflow-research <query or URL>`
+- fetch/page reading is injectable for deterministic tests
+- research sources are persisted on workflow runs
+- source evidence appears in Markdown and JSON reports
+
+## Eighth Slice
+
+The eighth slice adds the portfolio demo package:
+
+- `examples/demo-task-board`
+- dependency-free Node app with task creation, grouping, and filtering
+- `npm.cmd test` and `npm.cmd run build`
+- prepared demo task: `Add priority filtering to the task board app`
+- `docs/demo.md` walkthrough for recording or presenting the project
+
 ## Verification
 
 PowerShell may block `npm.ps1` on Windows. Use `npm.cmd`:
@@ -90,13 +110,10 @@ node ./bin/agentforge.mjs --version
 node ./bin/agentforge.mjs --help
 ```
 
-## Next Slice
+Demo app verification:
 
-Implement the demo repository:
-
-- Create `examples/demo-task-board`.
-- Add a small app with test/build scripts.
-- Add a demo task for priority filtering.
-- Use it to exercise `/workflow`, approval, verification, and reports.
-
-The goal is to make the workflow demonstrable without relying on a random external repository.
+```powershell
+cd examples/demo-task-board
+npm.cmd test
+npm.cmd run build
+```

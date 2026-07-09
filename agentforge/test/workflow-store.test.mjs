@@ -10,6 +10,7 @@ import {
   applyReportPaths,
   applyVerificationResults,
   appendPolicyEvent,
+  appendResearchSources,
   createWorkflowRun,
   summarizeWorkflow,
   transitionWorkflow,
@@ -135,4 +136,16 @@ test("appendPolicyEvent stores audit event", () => {
 
   assert.equal(next.policyEvents.length, 1);
   assert.equal(next.events.at(-1).type, "policy.evaluated");
+});
+
+test("appendResearchSources deduplicates sources and records event", () => {
+  const run = createWorkflowRun("Goal", { id: "wf-test" });
+  const next = appendResearchSources(run, [
+    { url: "https://example.com/a", title: "A" },
+    { url: "https://example.com/a", title: "Duplicate" },
+  ]);
+
+  assert.equal(next.sources.length, 1);
+  assert.equal(next.events.at(-1).type, "research.sources_added");
+  assert.equal(next.events.at(-1).data.sourceCount, 1);
 });

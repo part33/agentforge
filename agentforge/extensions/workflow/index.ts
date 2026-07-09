@@ -1,12 +1,14 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { parsePlanArtifactFromText, planArtifactToTasks } from "../../src/artifacts.js";
 import { createPolicyEvent, evaluateToolCallPolicy } from "../../src/policy-engine.js";
+import { collectResearchSources } from "../../src/research-connector.js";
 import { writeWorkflowReport } from "../../src/report-generator.js";
 import { detectVerificationCommands, runVerificationCommands } from "../../src/verification-runner.js";
 import {
   applyApprovalDecision,
   applyVerificationResults,
   applyReportPaths,
+  appendResearchSources,
   appendPolicyEvent,
   appendWorkflowEvent,
   applyPlanArtifact,
@@ -323,6 +325,29 @@ async function verifyLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandConte
   );
 }
 
+async function researchLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandContext, query: string) {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    ctx.ui.notify("Usage: /workflow-research <query or URL>", "warning");
+    return;
+  }
+
+  const store = new WorkflowStore(ctx.cwd);
+  let run = await store.loadLatestRun();
+  if (!run) {
+    run = await store.createRun(trimmedQuery);
+  }
+
+  ctx.ui.notify(`AgentForge collecting research sources for: ${trimmedQuery}`, "info");
+  const bundle = await collectResearchSources(trimmedQuery, { fetchPages: true });
+  run = await store.loadRun(run.id);
+  run = appendResearchSources(run, bundle.sources);
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+  ctx.ui.notify(`AgentForge added ${bundle.sources.length} research source(s).`, "info");
+}
+
 async function reportLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandContext) {
   const store = new WorkflowStore(ctx.cwd);
   let run = await store.loadLatestRun();
@@ -471,6 +496,13 @@ export default function agentForgeWorkflow(pi: ExtensionAPI) {
     description: "Run verification commands for the latest AgentForge workflow",
     handler: async (_args, ctx) => {
       await verifyLatestWorkflow(pi, ctx);
+    },
+  });
+
+  pi.registerCommand("workflow-research", {
+    description: "Collect and attach research sources to the latest AgentForge workflow",
+    handler: async (args, ctx) => {
+      await researchLatestWorkflow(pi, ctx, args);
     },
   });
 

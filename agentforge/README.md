@@ -1,54 +1,93 @@
 # AgentForge
 
-AgentForge is an enhanced Pi distribution for software engineering agent workflows.
-
-It adds an opinionated workflow layer on top of Pi:
+AgentForge is an enhanced Pi distribution for software engineering agent workflows. It keeps Pi as the runtime and adds a productized workflow layer for planning, approval, verification, source-backed reports, and policy controls.
 
 ```text
-Explore -> Plan -> Approve -> Execute -> Verify -> Review -> Report
+Explore -> Research -> Plan -> Approve -> Execute -> Verify -> Review -> Report
 ```
 
-## Current Slice
+## Why This Project Exists
 
-This first implementation slice includes:
+Most coding agents are impressive in a live session but hard to explain afterward. AgentForge turns the session into a durable workflow:
 
-- `agentforge` CLI entry
-- `--version` and `--help`
-- Pi launcher with AgentForge workflow extension preloaded
-- `/workflow <goal>` command skeleton
-- `.agentforge/workflows/<id>.json` persistence
-- Pi session mirror entries for workflow state
+- A structured plan artifact before code changes.
+- A human approval gate before execution.
+- Policy checks around risky tool calls.
+- Verification commands captured as evidence.
+- Markdown and JSON reports for review, demo, and resume storytelling.
 
-## Usage
+## Commands
 
-From this repository:
+Launch AgentForge with the workflow extension preloaded:
 
-```bash
-cd agentforge
-npm run smoke
-```
-
-Launch an interactive Pi session with AgentForge loaded:
-
-```bash
+```powershell
 node ./bin/agentforge.mjs
 ```
 
-Start a workflow directly:
+Start a one-shot workflow:
 
-```bash
+```powershell
 node ./bin/agentforge.mjs "Add priority filtering to the task board app"
 ```
 
-If Pi is not installed globally, the launcher tries the local `../pi/pi-test.ps1` or `../pi/pi-test.sh` scripts. You can also override the executable:
+Inside Pi:
 
-```bash
-set AGENTFORGE_PI_BIN=pi
-node ./bin/agentforge.mjs
+```text
+/workflow <goal>
+/workflow-research <query or URL>
+/workflow-status
+/workflow-approve approve
+/workflow-verify
+/workflow-report
 ```
+
+## Demo
+
+The repository includes a prepared demo app at `examples/demo-task-board`.
+
+```powershell
+cd examples/demo-task-board
+npm.cmd test
+npm.cmd run build
+```
+
+Suggested demo goal:
+
+```text
+Add priority filtering to the task board app.
+```
+
+See `docs/demo.md` for a walkthrough.
+
+## Architecture
+
+AgentForge is deliberately layered:
+
+- `bin/agentforge.mjs`: CLI wrapper that launches Pi with the AgentForge extension.
+- `extensions/workflow/index.ts`: Pi extension commands and hooks.
+- `src/workflow-store.js`: durable workflow state machine.
+- `src/artifacts.js`: structured plan artifact parsing and validation.
+- `src/research-connector.js`: source collection, page reading, deduplication, summaries.
+- `src/policy-engine.js`: deterministic allow/confirm/block policy decisions.
+- `src/verification-runner.js`: test/lint/build detection and execution.
+- `src/report-generator.js`: Markdown and JSON workflow reports.
+- `examples/demo-task-board`: reproducible portfolio demo target.
+
+See `docs/architecture.md` for the deeper explanation.
 
 ## Development
 
-```bash
-npm test
+PowerShell may block `npm.ps1` on Windows. Use `npm.cmd`:
+
+```powershell
+npm.cmd test
+npm.cmd run smoke
+```
+
+## Resume Positioning
+
+Possible resume bullet:
+
+```text
+Built AgentForge, a Pi-based software engineering agent workflow distribution with structured planning, approval gates, tool policy enforcement, automated verification, research source capture, and durable Markdown/JSON execution reports.
 ```

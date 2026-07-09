@@ -1,0 +1,11 @@
+{
+  "name": "agentforge-demo-task-board",
+  "version": "0.1.0",
+  "description": "Small task board app used to demonstrate AgentForge workflows.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "build": "node ./src/task-board.js"
+  }
+}

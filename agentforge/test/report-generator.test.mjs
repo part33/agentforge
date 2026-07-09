@@ -31,6 +31,7 @@ function createReportableRun() {
   run = applyVerificationResults(run, [
     { command: "npm test", status: "passed", exitCode: 0, summary: "1 test passed", durationMs: 50 },
   ]);
+  run.sources = [{ title: "Node Test Runner", url: "https://nodejs.org/api/test.html", summary: "Node test docs." }];
   return run;
 }
 
@@ -41,6 +42,7 @@ test("renderMarkdownReport includes core sections", () => {
   assert.match(markdown, /## Plan/);
   assert.match(markdown, /npm test/);
   assert.match(markdown, /Fixtures may need updates/);
+  assert.match(markdown, /Node Test Runner/);
 });
 
 test("createReportMetadata extracts machine-readable fields", () => {

@@ -226,6 +226,33 @@ export function appendPolicyEvent(run, policyEvent) {
   };
 }
 
+export function appendResearchSources(run, sources) {
+  const now = new Date().toISOString();
+  const existingUrls = new Set((run.sources ?? []).map((source) => source.url));
+  const newSources = [];
+  for (const source of sources ?? []) {
+    if (!source?.url || existingUrls.has(source.url)) continue;
+    existingUrls.add(source.url);
+    newSources.push(source);
+  }
+
+  return {
+    ...run,
+    sources: [...(run.sources ?? []), ...newSources],
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "research.sources_added",
+        timestamp: now,
+        message: `Added ${newSources.length} research source(s).`,
+        data: { sourceCount: newSources.length },
+      },
+    ],
+  };
+}
+
 export function summarizeWorkflow(run) {
   return {
     id: run.id,
