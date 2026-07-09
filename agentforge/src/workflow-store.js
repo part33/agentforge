@@ -1,0 +1,176 @@
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+
+export const WORKFLOW_STATUSES = ["active", "done", "failed", "cancelled"];
+
+export const WORKFLOW_PHASES = [
+  "idle",
+  "exploring",
+  "planning",
+  "waiting_approval",
+  "executing",
+  "verifying",
+  "reviewing",
+  "reporting",
+  "done",
+  "failed",
+  "cancelled",
+];
+
+export function createWorkflowId(date = new Date()) {
+  const stamp = date.toISOString().replace(/[-:]/g, "").replace(/\..+$/, "Z");
+  return `wf-${stamp}-${randomUUID().slice(0, 8)}`;
+}
+
+export function createWorkflowRun(goal, options = {}) {
+  const now = new Date().toISOString();
+  const id = options.id ?? createWorkflowId();
+  return {
+    schemaVersion: 1,
+    id,
+    goal,
+    status: "active",
+    currentPhase: "idle",
+    createdAt: now,
+    updatedAt: now,
+    phases: [
+      {
+        phase: "idle",
+        status: "done",
+        startedAt: now,
+        completedAt: now,
+        summary: "Workflow run created.",
+      },
+    ],
+    tasks: [],
+    sources: [],
+    verificationResults: [],
+    policyEvents: [],
+    events: [
+      {
+        id: randomUUID(),
+        type: "workflow.created",
+        timestamp: now,
+        message: "Workflow run created.",
+        data: { goal },
+      },
+    ],
+    reportPaths: {},
+  };
+}
+
+export function transitionWorkflow(run, nextPhase, options = {}) {
+  if (!WORKFLOW_PHASES.includes(nextPhase)) {
+    throw new Error(`Unknown workflow phase: ${nextPhase}`);
+  }
+
+  const now = new Date().toISOString();
+  const status = options.status ?? (nextPhase === "failed" || nextPhase === "cancelled" ? nextPhase : "active");
+  const nextRun = {
+    ...run,
+    status,
+    currentPhase: nextPhase,
+    updatedAt: now,
+    phases: [
+      ...run.phases,
+      {
+        phase: nextPhase,
+        status: options.phaseStatus ?? "running",
+        startedAt: now,
+        completedAt: options.completed ? now : undefined,
+        summary: options.summary,
+      },
+    ],
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "workflow.phase_changed",
+        timestamp: now,
+        message: options.summary ?? `Moved to ${nextPhase}.`,
+        data: { phase: nextPhase },
+      },
+    ],
+  };
+  return nextRun;
+}
+
+export function summarizeWorkflow(run) {
+  return {
+    id: run.id,
+    goal: run.goal,
+    status: run.status,
+    currentPhase: run.currentPhase,
+    taskCount: run.tasks.length,
+    sourceCount: run.sources.length,
+    verificationCount: run.verificationResults.length,
+    updatedAt: run.updatedAt,
+  };
+}
+
+export class WorkflowStore {
+  constructor(cwd) {
+    this.cwd = cwd;
+    this.rootDir = join(cwd, ".agentforge");
+    this.workflowDir = join(this.rootDir, "workflows");
+  }
+
+  pathForRun(runId) {
+    return join(this.workflowDir, `${runId}.json`);
+  }
+
+  async ensureDirs() {
+    await mkdir(this.workflowDir, { recursive: true });
+  }
+
+  async createRun(goal) {
+    const run = createWorkflowRun(goal);
+    await this.updateRun(run);
+    return run;
+  }
+
+  async updateRun(run) {
+    await this.ensureDirs();
+    const json = `${JSON.stringify(run, null, 2)}\n`;
+    await writeFile(this.pathForRun(run.id), json, "utf8");
+  }
+
+  async loadRun(runId) {
+    const raw = await readFile(this.pathForRun(runId), "utf8");
+    return JSON.parse(raw);
+  }
+
+  async appendEvent(runId, event) {
+    const run = await this.loadRun(runId);
+    const now = new Date().toISOString();
+    const nextRun = {
+      ...run,
+      updatedAt: now,
+      events: [
+        ...run.events,
+        {
+          id: randomUUID(),
+          timestamp: now,
+          ...event,
+        },
+      ],
+    };
+    await this.updateRun(nextRun);
+    return nextRun;
+  }
+
+  async listRuns() {
+    await this.ensureDirs();
+    const files = await readdir(this.workflowDir);
+    return files.filter((file) => file.endsWith(".json")).sort();
+  }
+
+  async loadLatestRun() {
+    const runs = await this.listRuns();
+    const latest = runs.at(-1);
+    if (!latest) return undefined;
+    const raw = await readFile(join(this.workflowDir, latest), "utf8");
+    return JSON.parse(raw);
+  }
+}

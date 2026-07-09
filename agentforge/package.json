@@ -1,0 +1,20 @@
+{
+  "name": "agentforge",
+  "version": "0.1.0",
+  "description": "Enhanced Pi distribution for software engineering agent workflows.",
+  "type": "module",
+  "bin": {
+    "agentforge": "./bin/agentforge.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "smoke": "node ./bin/agentforge.mjs --version"
+  },
+  "keywords": [
+    "agent",
+    "pi",
+    "workflow",
+    "coding-agent"
+  ],
+  "license": "MIT"
+}
