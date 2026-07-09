@@ -83,4 +83,4 @@ AgentForge 使用了 Pi 的 hooks 来实现自动化：
 - Markdown：给人看，适合复盘和演示。
 - JSON：给程序看，适合后续做自动评估或可视化。
 
-这是 AgentForge 最适合写进简历的差异点：它不只是让 Agent 改代码，而是让 Agent 留下一份可审计、可复盘、可展示的工程记录。
+这也是 AgentForge 的核心边界：它不只是让 Agent 改代码，而是让 Agent 留下一份可审计、可复盘、可自动处理的工程记录。

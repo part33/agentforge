@@ -85,13 +85,13 @@ The seventh slice adds research/source evidence:
 
 ## Eighth Slice
 
-The eighth slice adds the portfolio demo package:
+The eighth slice adds the reproducible demo package:
 
 - `examples/demo-task-board`
 - dependency-free Node app with task creation, grouping, and filtering
 - `npm.cmd test` and `npm.cmd run build`
 - prepared demo task: `Add priority filtering to the task board app`
-- `docs/demo.md` walkthrough for recording or presenting the project
+- `docs/demo.md` walkthrough for reproducing the workflow
 
 ## Verification
 

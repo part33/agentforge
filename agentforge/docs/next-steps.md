@@ -1,6 +1,6 @@
 # 接下来做什么
 
-现在 AgentForge 已经有了基础能力：工作流状态机、计划 artifact、审批、验证、报告、策略控制、调研来源和 demo app。下一步不是继续盲目堆功能，而是把它变成一个能展示、能讲清楚、能写进简历的项目。
+现在 AgentForge 已经有了基础能力：工作流状态机、计划 artifact、审批、验证、报告、策略控制、调研来源和 demo app。下一步不是继续盲目堆功能，而是把它变成一个更稳定、更容易复现、更适合协作使用的工程工具。
 
 ## 第一步：跑通一次真实演示
 
@@ -22,7 +22,7 @@ node ..\..\bin\agentforge.mjs
 /workflow-report
 ```
 
-跑完后重点看 `.agentforge/reports` 里的 Markdown 报告。这份报告就是你后面做截图、写项目说明、面试讲解的材料。
+跑完后重点看 `.agentforge/reports` 里的 Markdown/HTML 报告。这份报告可以作为审计、复盘和问题追踪材料。
 
 ## 第二步：阅读中文项目说明页
 
@@ -33,9 +33,9 @@ node ..\..\bin\agentforge.mjs
 - 我具体实现了哪些模块？
 - 这个项目比普通 Coding Agent demo 多了什么工程价值？
 
-这份文档可以直接改写成简历项目介绍。
+这份文档可以作为项目背景说明和设计记录。
 
-## 第三步：录制或截图演示材料
+## 第三步：补充演示材料
 
 建议至少准备三张图：
 
@@ -43,7 +43,7 @@ node ..\..\bin\agentforge.mjs
 - `/workflow-verify` 跑测试的结果。
 - `/workflow-report` 生成的 Markdown 报告。
 
-如果以后要放 GitHub README，这三张图比一大段文字更有说服力。
+如果以后要放 GitHub README，这三张图比一大段文字更容易帮助使用者理解流程。
 
 ## 第四步：做一个更强的扩展点
 
@@ -55,15 +55,15 @@ node ..\..\bin\agentforge.mjs
 
 HTML 报告已经具备基础版本，第二期加入 AgentForge Eval，第三期加入 Subagent、MCP Adapter、Memory 和 Observability。下一步可以把这些能力整合成一个 benchmark/dashboard 面板。
 
-## 第五步：简历表达
+## 第五步：文档整理
 
-简历里不要写“基于开源项目改了一下”。要写成：
+建议把公开文档统一成这类表达：
 
 ```text
 AgentForge：基于 Pi 扩展系统开发的软件工程 Agent 工作流增强发行包，实现了结构化计划、人工审批、工具调用策略控制、自动化验证、调研来源记录和 Markdown/JSON 执行报告生成，并提供可复现实例项目用于演示完整 Agent 开发流程。
 ```
 
-面试展开时可以强调：
+文档展开时可以强调：
 
 - 我没有重复造底层 Agent runtime，而是识别 Pi 的扩展边界，在上层实现产品化 workflow。
 - 我把 Agent 的行为从“聊天过程”沉淀成“可持久化、可验证、可复盘”的工程记录。

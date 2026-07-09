@@ -57,12 +57,12 @@ npm.cmd run demo:evaluate
 .agentforge/evaluations/*.json
 ```
 
-## 简历讲法
+## 模块说明
 
-可以这样讲：
+AgentForge Eval 的定位：
 
 ```text
-第二期增加 AgentForge Eval，对每次 Agent 工作流进行质量评估，按计划完整性、审批记录、验证结果、调研来源、策略审计和报告产物完整度进行可解释评分，并输出 Markdown/JSON 评估报告。
+AgentForge Eval 对每次 Agent 工作流进行质量评估，按计划完整性、审批记录、验证结果、调研来源、策略审计和报告产物完整度进行可解释评分，并输出 Markdown/JSON 评估报告。
 ```
 
 这个点的价值在于：项目不只是“让 Agent 做事”，而是开始评估 Agent 做事的质量。

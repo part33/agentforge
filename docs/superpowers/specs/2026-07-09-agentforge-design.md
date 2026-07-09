@@ -2,7 +2,7 @@
 
 ## Background
 
-AgentForge is an enhanced distribution built on top of the open source Pi agent project. The goal is not to rewrite Pi or copy its example extensions, but to add a software-engineering workflow layer that makes complex coding tasks more controlled, observable, and portfolio-ready.
+AgentForge is an enhanced distribution built on top of the open source Pi agent project. The goal is not to rewrite Pi or copy its example extensions, but to add a software-engineering workflow layer that makes complex coding tasks more controlled, observable, and reproducible.
 
 Pi provides the underlying agent harness: model access, tool calling, sessions, terminal UI, extensions, skills, and prompts. AgentForge adds opinionated workflow orchestration for feature development tasks.
 
@@ -242,7 +242,7 @@ Research is not the main product. It supports the software engineering workflow 
 
 AgentForge uses double-write state persistence.
 
-Pi session stores key workflow state for session continuity. `.agentforge/` stores complete workflow records and reports for replay, audit, and portfolio evidence.
+Pi session stores key workflow state for session continuity. `.agentforge/` stores complete workflow records and reports for replay, audit, and traceability.
 
 Filesystem layout:
 
@@ -291,7 +291,7 @@ A full workflow panel is deferred to a later release.
 
 ### Report Generator
 
-The final report is a core portfolio artifact.
+The final report is a core workflow artifact.
 
 Markdown report sections:
 
@@ -407,14 +407,14 @@ The demo project should be small enough to run reliably but realistic enough to 
 - Improve verification command detection.
 - Add report source and policy sections.
 
-### Week 4: Portfolio Polish
+### Week 4: Documentation and Demo Polish
 
 - Build demo task board repository.
 - Add repeatable demo script.
 - Write README, architecture docs, and usage docs.
 - Add screenshots or terminal recording plan.
 - Add basic tests for state transitions, report generation, and policy decisions.
-- Write resume bullets and interview explanation notes.
+- Write public documentation and project positioning notes.
 
 ## Testing Strategy
 
@@ -455,7 +455,7 @@ Mitigation: Limit first release to approve, revise, and cancel actions.
 Risk: Double-write state gets inconsistent.
 Mitigation: Centralize writes through `WorkflowStore` and mirror only key state into Pi session.
 
-## Resume Positioning
+## Project Positioning
 
 Recommended project description:
 
@@ -464,7 +464,7 @@ AgentForge: Software engineering agent workflow distribution built on Pi.
 Designed and implemented an agent workflow layer over Pi Extension System, supporting Explore-Plan-Approve-Execute-Verify-Review-Report phases, structured phase protocols, human-in-the-loop approval, research source tracking, policy-controlled tool execution, verification running, and report archival.
 ```
 
-Resume bullets:
+Key implementation points:
 
 - Built an enhanced Agent distribution on top of Pi Extension System with a multi-phase software engineering workflow state machine.
 - Designed structured phase protocols for planning, verification, review, and reporting to reduce prompt-only control failure.

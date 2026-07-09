@@ -2,7 +2,7 @@
 
 ## Objective
 
-Build AgentForge as a portfolio-grade enhanced distribution on top of Pi. The first release should demonstrate a complete software engineering agent workflow:
+Build AgentForge as a reproducible enhanced distribution on top of Pi. The first release should demonstrate a complete software engineering agent workflow:
 
 ```text
 Explore -> Plan -> Approve -> Execute -> Verify -> Review -> Report
@@ -129,7 +129,7 @@ Acceptance:
 
 ## Milestone 6: Report Generator
 
-Goal: Produce durable portfolio artifacts.
+Goal: Produce durable workflow artifacts.
 
 Tasks:
 
@@ -221,9 +221,9 @@ Acceptance:
 - The demo starts from a clean state.
 - The workflow can produce code changes, run tests, and generate report artifacts.
 
-## Milestone 10: Portfolio Polish
+## Milestone 10: Documentation Polish
 
-Goal: Make the project understandable to recruiters and interviewers.
+Goal: Make the project understandable from the repository documentation alone.
 
 Tasks:
 
@@ -232,14 +232,14 @@ Tasks:
 3. Add demo guide.
 4. Add screenshots or terminal recording plan.
 5. Add comparison with vanilla Pi.
-6. Add resume bullets.
+6. Add project positioning notes.
 7. Add known limitations and future work.
 
 Deliverables:
 
 - Project can be understood from README alone.
 - Demo can be reproduced.
-- Resume bullets are ready.
+- Project positioning notes are ready.
 
 Acceptance:
 
