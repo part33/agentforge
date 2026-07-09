@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   applyApprovalDecision,
   applyPlanArtifact,
+  applyReportPaths,
   applyVerificationResults,
   createWorkflowRun,
   summarizeWorkflow,
@@ -112,4 +113,12 @@ test("applyVerificationResults stores results and records event", () => {
   assert.equal(next.verificationResults.length, 1);
   assert.equal(next.events.at(-1).type, "verification.completed");
   assert.equal(next.events.at(-1).data.passed, 1);
+});
+
+test("applyReportPaths stores report paths and records event", () => {
+  const run = transitionWorkflow(createWorkflowRun("Goal", { id: "wf-test" }), "reporting");
+  const next = applyReportPaths(run, { markdown: "report.md", json: "report.json" });
+
+  assert.equal(next.reportPaths.markdown, "report.md");
+  assert.equal(next.events.at(-1).type, "report.generated");
 });

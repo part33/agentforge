@@ -51,6 +51,17 @@ The fourth slice adds verification execution:
 - verification results are persisted in workflow state
 - workflow moves from `executing` or `verifying` to `reviewing` after verification completes
 
+## Fifth Slice
+
+The fifth slice adds durable reports:
+
+- `renderMarkdownReport()` builds a human-readable workflow report
+- `createReportMetadata()` builds machine-readable report metadata
+- `writeWorkflowReport()` writes `.agentforge/reports/*.md` and `.json`
+- `/workflow-report` generates reports for the latest workflow
+- report paths are persisted in workflow state
+- workflow moves to `done` after report generation
+
 ## Verification
 
 PowerShell may block `npm.ps1` on Windows. Use `npm.cmd`:
@@ -70,11 +81,11 @@ node ./bin/agentforge.mjs --help
 
 ## Next Slice
 
-Implement the report generator:
+Implement the policy engine:
 
-- Create `.agentforge/reports/`.
-- Generate Markdown and JSON reports.
-- Include goal, plan, approval, verification, events, and follow-up notes.
-- Add `/workflow-report`.
+- Add rule matching for command/path risks.
+- Implement allow/confirm/block decisions.
+- Hook policy decisions into Pi tool calls.
+- Record policy events in workflow state.
 
-The goal is to create a durable portfolio artifact after a workflow run.
+The goal is to make execution safer and produce audit evidence in the report.

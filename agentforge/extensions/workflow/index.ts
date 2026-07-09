@@ -1,9 +1,11 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { parsePlanArtifactFromText, planArtifactToTasks } from "../../src/artifacts.js";
+import { writeWorkflowReport } from "../../src/report-generator.js";
 import { detectVerificationCommands, runVerificationCommands } from "../../src/verification-runner.js";
 import {
   applyApprovalDecision,
   applyVerificationResults,
+  applyReportPaths,
   appendWorkflowEvent,
   applyPlanArtifact,
   summarizeWorkflow,
@@ -319,6 +321,36 @@ async function verifyLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandConte
   );
 }
 
+async function reportLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandContext) {
+  const store = new WorkflowStore(ctx.cwd);
+  let run = await store.loadLatestRun();
+  if (!run) {
+    ctx.ui.notify("No AgentForge workflow found for this project.", "warning");
+    return;
+  }
+
+  run = transitionWorkflow(run, "reporting", {
+    summary: "Generating workflow report.",
+  });
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+
+  const reportPaths = await writeWorkflowReport(run, ctx.cwd);
+  run = await store.loadRun(run.id);
+  run = applyReportPaths(run, reportPaths);
+  run = transitionWorkflow(run, "done", {
+    status: "done",
+    phaseStatus: "done",
+    completed: true,
+    summary: "Workflow report generated and workflow completed.",
+  });
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+  ctx.ui.notify(`AgentForge report written: ${reportPaths.markdown}`, "info");
+}
+
 async function handlePlanningMessage(pi: ExtensionAPI, ctx: ExtensionContext, message: any) {
   const store = new WorkflowStore(ctx.cwd);
   let run = await store.loadLatestRun();
@@ -382,6 +414,13 @@ export default function agentForgeWorkflow(pi: ExtensionAPI) {
     description: "Run verification commands for the latest AgentForge workflow",
     handler: async (_args, ctx) => {
       await verifyLatestWorkflow(pi, ctx);
+    },
+  });
+
+  pi.registerCommand("workflow-report", {
+    description: "Generate Markdown and JSON reports for the latest AgentForge workflow",
+    handler: async (_args, ctx) => {
+      await reportLatestWorkflow(pi, ctx);
     },
   });
 

@@ -188,6 +188,25 @@ export function applyVerificationResults(run, results) {
   };
 }
 
+export function applyReportPaths(run, reportPaths) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    reportPaths,
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "report.generated",
+        timestamp: now,
+        message: "Workflow report generated.",
+        data: reportPaths,
+      },
+    ],
+  };
+}
+
 export function summarizeWorkflow(run) {
   return {
     id: run.id,
