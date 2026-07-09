@@ -207,6 +207,25 @@ export function applyReportPaths(run, reportPaths) {
   };
 }
 
+export function appendPolicyEvent(run, policyEvent) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    policyEvents: [...(run.policyEvents ?? []), { ...policyEvent, timestamp: now }],
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "policy.evaluated",
+        timestamp: now,
+        message: `${policyEvent.decision}: ${policyEvent.reason}`,
+        data: policyEvent,
+      },
+    ],
+  };
+}
+
 export function summarizeWorkflow(run) {
   return {
     id: run.id,

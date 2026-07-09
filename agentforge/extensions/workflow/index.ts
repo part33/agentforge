@@ -1,11 +1,13 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { parsePlanArtifactFromText, planArtifactToTasks } from "../../src/artifacts.js";
+import { createPolicyEvent, evaluateToolCallPolicy } from "../../src/policy-engine.js";
 import { writeWorkflowReport } from "../../src/report-generator.js";
 import { detectVerificationCommands, runVerificationCommands } from "../../src/verification-runner.js";
 import {
   applyApprovalDecision,
   applyVerificationResults,
   applyReportPaths,
+  appendPolicyEvent,
   appendWorkflowEvent,
   applyPlanArtifact,
   summarizeWorkflow,
@@ -351,6 +353,61 @@ async function reportLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandConte
   ctx.ui.notify(`AgentForge report written: ${reportPaths.markdown}`, "info");
 }
 
+async function recordPolicyEvent(ctx: ExtensionContext, event: any, decision: any) {
+  const store = new WorkflowStore(ctx.cwd);
+  const run = await store.loadLatestRun();
+  if (!run) return undefined;
+
+  const policyEvent = createPolicyEvent({
+    toolName: event.toolName,
+    toolCallId: event.toolCallId,
+    input: event.input,
+    decision,
+  });
+  const nextRun = appendPolicyEvent(run, policyEvent);
+  await store.updateRun(nextRun);
+  setWorkflowStatus(ctx, nextRun);
+  return policyEvent;
+}
+
+async function handleToolPolicy(event: any, ctx: ExtensionContext) {
+  const decision = evaluateToolCallPolicy({ toolName: event.toolName, input: event.input });
+  if (decision.decision === "allow") {
+    await recordPolicyEvent(ctx, event, decision);
+    return undefined;
+  }
+
+  if (decision.decision === "block") {
+    await recordPolicyEvent(ctx, event, decision);
+    ctx.ui.notify(`AgentForge blocked ${event.toolName}: ${decision.reason}`, "warning");
+    return { block: true, reason: decision.reason };
+  }
+
+  if (!ctx.hasUI) {
+    const noUiDecision = {
+      ...decision,
+      decision: "block",
+      reason: `${decision.reason} No UI available for confirmation.`,
+    };
+    await recordPolicyEvent(ctx, event, noUiDecision);
+    return { block: true, reason: noUiDecision.reason };
+  }
+
+  const choice = await ctx.ui.select(
+    `AgentForge policy confirmation\n\n${decision.reason}\n\n${decision.subject}`,
+    ["Allow once", "Block"],
+  );
+  const finalDecision =
+    choice === "Allow once"
+      ? { ...decision, decision: "allow", reason: `User confirmed: ${decision.reason}` }
+      : { ...decision, decision: "block", reason: `User blocked: ${decision.reason}` };
+  await recordPolicyEvent(ctx, event, finalDecision);
+  if (finalDecision.decision === "block") {
+    return { block: true, reason: finalDecision.reason };
+  }
+  return undefined;
+}
+
 async function handlePlanningMessage(pi: ExtensionAPI, ctx: ExtensionContext, message: any) {
   const store = new WorkflowStore(ctx.cwd);
   let run = await store.loadLatestRun();
@@ -434,5 +491,9 @@ export default function agentForgeWorkflow(pi: ExtensionAPI) {
 
   pi.on("message_end", async (event, ctx) => {
     await handlePlanningMessage(pi, ctx, event.message);
+  });
+
+  pi.on("tool_call", async (event, ctx) => {
+    return await handleToolPolicy(event, ctx);
   });
 }

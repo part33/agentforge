@@ -9,6 +9,7 @@ import {
   applyPlanArtifact,
   applyReportPaths,
   applyVerificationResults,
+  appendPolicyEvent,
   createWorkflowRun,
   summarizeWorkflow,
   transitionWorkflow,
@@ -121,4 +122,17 @@ test("applyReportPaths stores report paths and records event", () => {
 
   assert.equal(next.reportPaths.markdown, "report.md");
   assert.equal(next.events.at(-1).type, "report.generated");
+});
+
+test("appendPolicyEvent stores audit event", () => {
+  const run = createWorkflowRun("Goal", { id: "wf-test" });
+  const next = appendPolicyEvent(run, {
+    toolName: "bash",
+    toolCallId: "call-1",
+    decision: "block",
+    reason: "Dangerous command.",
+  });
+
+  assert.equal(next.policyEvents.length, 1);
+  assert.equal(next.events.at(-1).type, "policy.evaluated");
 });

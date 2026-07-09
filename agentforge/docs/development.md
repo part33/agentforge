@@ -62,6 +62,17 @@ The fifth slice adds durable reports:
 - report paths are persisted in workflow state
 - workflow moves to `done` after report generation
 
+## Sixth Slice
+
+The sixth slice adds policy controls:
+
+- `evaluateToolCallPolicy()` classifies tool calls as allow, confirm, or block
+- dangerous bash commands are blocked
+- git write/package install commands require confirmation
+- writes/edits to sensitive paths are blocked
+- Pi `tool_call` hook enforces policy decisions
+- policy events are persisted and included in reports
+
 ## Verification
 
 PowerShell may block `npm.ps1` on Windows. Use `npm.cmd`:
@@ -81,11 +92,11 @@ node ./bin/agentforge.mjs --help
 
 ## Next Slice
 
-Implement the policy engine:
+Implement the demo repository:
 
-- Add rule matching for command/path risks.
-- Implement allow/confirm/block decisions.
-- Hook policy decisions into Pi tool calls.
-- Record policy events in workflow state.
+- Create `examples/demo-task-board`.
+- Add a small app with test/build scripts.
+- Add a demo task for priority filtering.
+- Use it to exercise `/workflow`, approval, verification, and reports.
 
-The goal is to make execution safer and produce audit evidence in the report.
+The goal is to make the workflow demonstrable without relying on a random external repository.
