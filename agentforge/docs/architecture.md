@@ -1,6 +1,6 @@
 # AgentForge 架构说明
 
-AgentForge 不是直接魔改 Pi 核心，而是作为 Pi 外层的增强发行包存在。这样项目边界会更清楚：Pi 负责 Agent 运行时、工具执行和 TUI；AgentForge 负责软件工程场景里的工作流产品层。
+AgentForge 基于 Pi 的扩展系统构建，采用清晰的分层边界：Pi 负责 Agent 运行时、工具执行和 TUI；AgentForge 负责软件工程场景里的工作流产品层。
 
 ## 运行边界
 

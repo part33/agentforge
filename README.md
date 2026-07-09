@@ -1,6 +1,6 @@
 # AgentForge
 
-AgentForge 是一个基于开源项目 [Pi](https://github.com/earendil-works/pi) 扩展系统构建的软件工程 Agent 工作流平台。它不是重新实现一个 Coding Agent，而是在 Pi 的 Agent Runtime 之上增加任务规划、人工审批、工具调用治理、自动验证、报告生成和质量评估能力。
+AgentForge 是一个基于开源项目 [Pi](https://github.com/earendil-works/pi) 扩展系统构建的软件工程 Agent 工作流平台，在 Pi 的 Agent Runtime 之上增加任务规划、人工审批、工具调用治理、自动验证、报告生成和质量评估能力。
 
 ## 项目解决的问题
 
