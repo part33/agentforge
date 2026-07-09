@@ -1,16 +1,25 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { parsePlanArtifactFromText, planArtifactToTasks } from "../../src/artifacts.js";
+import { MemoryStore } from "../../src/memory-store.js";
+import { createMcpServerManifest, createPiToolBridge, describeMcpBridge } from "../../src/mcp-adapter.js";
+import { createToolCallLog, summarizeObservability } from "../../src/observability.js";
 import { createPolicyEvent, evaluateToolCallPolicy } from "../../src/policy-engine.js";
 import { collectResearchSources } from "../../src/research-connector.js";
 import { writeWorkflowReport } from "../../src/report-generator.js";
+import { assignSubagents, renderSubagentBriefing } from "../../src/subagents.js";
 import { detectVerificationCommands, runVerificationCommands } from "../../src/verification-runner.js";
 import {
   applyApprovalDecision,
+  applyMemorySummary,
+  applyMcpBridge,
+  applyObservabilitySummary,
   applyVerificationResults,
   applyReportPaths,
   appendResearchSources,
   appendPolicyEvent,
+  appendToolCallLog,
   appendWorkflowEvent,
+  applySubagentAssignments,
   applyPlanArtifact,
   summarizeWorkflow,
   transitionWorkflow,
@@ -28,7 +37,7 @@ type WorkflowRun = ReturnType<typeof summarizeWorkflow> & {
 
 function formatStatus(summary: ReturnType<typeof summarizeWorkflow>): string {
   const approval = summary.approvalDecision ? ` | approval ${summary.approvalDecision}` : "";
-  return `AgentForge | ${summary.currentPhase} | tasks 0/${summary.taskCount} | sources ${summary.sourceCount} | verify ${summary.verificationCount}${approval}`;
+  return `AgentForge | ${summary.currentPhase} | tasks 0/${summary.taskCount} | sources ${summary.sourceCount} | tools ${summary.toolCallCount ?? 0} | verify ${summary.verificationCount}${approval}`;
 }
 
 function setWorkflowStatus(ctx: ExtensionContext, run: WorkflowRun) {
@@ -377,6 +386,95 @@ async function reportLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandConte
   ctx.ui.notify(`AgentForge report written: ${reportPaths.markdown}`, "info");
 }
 
+async function assignLatestSubagents(pi: ExtensionAPI, ctx: ExtensionCommandContext) {
+  const store = new WorkflowStore(ctx.cwd);
+  let run = await store.loadLatestRun();
+  if (!run) {
+    ctx.ui.notify("No AgentForge workflow found for this project.", "warning");
+    return;
+  }
+  const bundle = assignSubagents(run);
+  run = applySubagentAssignments(run, bundle);
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+  ctx.ui.notify(renderSubagentBriefing(bundle), "info");
+}
+
+async function updateWorkflowMemory(pi: ExtensionAPI, ctx: ExtensionCommandContext, args: string) {
+  const [type = "knowledge", ...rest] = args.trim().split(/\s+/);
+  const text = rest.join(" ").trim();
+  const typeMap: Record<string, "projectKnowledge" | "userPreferences" | "rules"> = {
+    knowledge: "projectKnowledge",
+    project: "projectKnowledge",
+    preference: "userPreferences",
+    preferences: "userPreferences",
+    rule: "rules",
+    rules: "rules",
+  };
+  const memoryType = typeMap[type.toLowerCase()];
+  if (!memoryType || !text) {
+    ctx.ui.notify("Usage: /workflow-memory knowledge|preference|rule <text>", "warning");
+    return;
+  }
+
+  const memoryStore = new MemoryStore(ctx.cwd);
+  await memoryStore.add(memoryType, text);
+  const summary = await memoryStore.summarize();
+
+  const store = new WorkflowStore(ctx.cwd);
+  const run = await store.loadLatestRun();
+  if (run) {
+    const nextRun = applyMemorySummary(run, summary);
+    await store.updateRun(nextRun);
+    mirrorWorkflow(pi, nextRun);
+    setWorkflowStatus(ctx, nextRun);
+  }
+  ctx.ui.notify(`AgentForge memory updated: ${memoryType}.`, "info");
+}
+
+async function configureMcpBridge(pi: ExtensionAPI, ctx: ExtensionCommandContext, args: string) {
+  const toolName = args.trim() || "demo.search";
+  const [serverId, name] = toolName.includes(".") ? toolName.split(".", 2) : ["demo", toolName];
+  const manifest = createMcpServerManifest({
+    servers: [
+      {
+        id: serverId,
+        name: `${serverId} MCP Server`,
+        command: "configured-externally",
+        tools: [{ name, description: `MCP tool bridge for ${toolName}` }],
+      },
+    ],
+  });
+  const bridge = createPiToolBridge(manifest);
+
+  const store = new WorkflowStore(ctx.cwd);
+  let run = await store.loadLatestRun();
+  if (!run) {
+    run = await store.createRun(`Configure MCP bridge for ${toolName}`);
+  }
+  run = applyMcpBridge(run, bridge);
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+  ctx.ui.notify(describeMcpBridge(bridge), "info");
+}
+
+async function summarizeLatestObservability(pi: ExtensionAPI, ctx: ExtensionCommandContext) {
+  const store = new WorkflowStore(ctx.cwd);
+  let run = await store.loadLatestRun();
+  if (!run) {
+    ctx.ui.notify("No AgentForge workflow found for this project.", "warning");
+    return;
+  }
+  const summary = summarizeObservability(run);
+  run = applyObservabilitySummary(run, summary);
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+  ctx.ui.notify(`Observability: ${summary.eventCount} events, ${summary.toolCallCount} tool calls.`, "info");
+}
+
 async function recordPolicyEvent(ctx: ExtensionContext, event: any, decision: any) {
   const store = new WorkflowStore(ctx.cwd);
   const run = await store.loadLatestRun();
@@ -388,7 +486,17 @@ async function recordPolicyEvent(ctx: ExtensionContext, event: any, decision: an
     input: event.input,
     decision,
   });
-  const nextRun = appendPolicyEvent(run, policyEvent);
+  let nextRun = appendPolicyEvent(run, policyEvent);
+  nextRun = appendToolCallLog(
+    nextRun,
+    createToolCallLog({
+      toolName: event.toolName,
+      toolCallId: event.toolCallId,
+      input: event.input,
+      decision,
+      status: decision.decision === "block" ? "blocked" : "allowed",
+    }),
+  );
   await store.updateRun(nextRun);
   setWorkflowStatus(ctx, nextRun);
   return policyEvent;
@@ -509,6 +617,34 @@ export default function agentForgeWorkflow(pi: ExtensionAPI) {
     description: "Generate Markdown and JSON reports for the latest AgentForge workflow",
     handler: async (_args, ctx) => {
       await reportLatestWorkflow(pi, ctx);
+    },
+  });
+
+  pi.registerCommand("workflow-subagents", {
+    description: "Assign workflow tasks to scout/planner/worker/reviewer roles",
+    handler: async (_args, ctx) => {
+      await assignLatestSubagents(pi, ctx);
+    },
+  });
+
+  pi.registerCommand("workflow-memory", {
+    description: "Store project knowledge, user preferences, or rules",
+    handler: async (args, ctx) => {
+      await updateWorkflowMemory(pi, ctx, args);
+    },
+  });
+
+  pi.registerCommand("workflow-mcp", {
+    description: "Configure an MCP-to-Pi tool bridge manifest",
+    handler: async (args, ctx) => {
+      await configureMcpBridge(pi, ctx, args);
+    },
+  });
+
+  pi.registerCommand("workflow-observe", {
+    description: "Summarize workflow observability metrics",
+    handler: async (_args, ctx) => {
+      await summarizeLatestObservability(pi, ctx);
     },
   });
 

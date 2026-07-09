@@ -39,6 +39,10 @@ node ./bin/agentforge.mjs "Add priority filtering to the task board app"
 /workflow-approve approve
 /workflow-verify
 /workflow-report
+/workflow-subagents
+/workflow-memory knowledge|preference|rule <text>
+/workflow-mcp <server.tool>
+/workflow-observe
 ```
 
 ## 演示项目
@@ -92,6 +96,8 @@ npm.cmd run demo:evaluate
 项目叙事和简历讲法见 `docs/project-story.md`。
 
 第二期说明见 `docs/phase-two.md`。
+
+第三期平台化能力见 `docs/phase-three.md`。
 
 ## 开发验证
 

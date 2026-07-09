@@ -25,7 +25,7 @@ test("evaluateWorkflowRun scores a complete workflow", () => {
   assert.equal(evaluation.score, 100);
   assert.equal(evaluation.grade, "A");
   assert.equal(evaluation.passed, true);
-  assert.equal(evaluation.checks.length, 7);
+  assert.equal(evaluation.checks.length, 11);
 });
 
 test("evaluateWorkflowRun returns recommendations for missing evidence", () => {
@@ -35,6 +35,10 @@ test("evaluateWorkflowRun returns recommendations for missing evidence", () => {
     sources: [],
     policyEvents: [],
     reportPaths: {},
+    subagentAssignments: [],
+    mcpBridge: undefined,
+    memorySummary: undefined,
+    observabilitySummary: undefined,
   };
 
   const evaluation = evaluateWorkflowRun(run);

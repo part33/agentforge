@@ -55,10 +55,21 @@ AgentForge 没有直接修改 Pi 核心，而是通过 Pi extension 加了一层
 
 这让项目从“能记录 Agent 做了什么”进一步变成“能判断 Agent 做得怎么样”。
 
+## 三期增强
+
+第三期补齐 Agent 平台能力：
+
+- Subagent：将任务分配给 scout、planner、worker、reviewer。
+- MCP Adapter：把 MCP server/tool 映射成 Pi 可识别的工具桥接描述。
+- Memory：沉淀项目知识、用户偏好和常用规则。
+- Observability：统计工具调用、阶段事件、验证结果和成本占位指标。
+
+这一期的意义是：AgentForge 不再只是单次工作流工具，而是开始具备 Agent 平台的核心横向能力。
+
 ## 简历项目写法
 
 ```text
-AgentForge：基于 Pi 扩展系统开发的软件工程 Agent 工作流增强发行包，实现结构化计划、人工审批、工具调用策略控制、自动化验证、调研来源记录、Markdown/JSON/HTML 执行报告生成，以及面向 Agent 工作流质量的可解释评分模块。
+AgentForge：基于 Pi 扩展系统开发的软件工程 Agent 工作流增强发行包，实现结构化计划、人工审批、工具调用策略控制、自动化验证、调研来源记录、Markdown/JSON/HTML 执行报告、可解释评分，并扩展 Subagent 派发、MCP 工具桥接、项目记忆和可观测性摘要。
 ```
 
 ## 面试展开讲法

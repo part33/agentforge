@@ -53,7 +53,7 @@ node ..\..\bin\agentforge.mjs
 2. 给 workflow 状态做一个可视化 timeline。
 3. 给 research connector 接入真实搜索 API 或 GitHub 搜索。
 
-HTML 报告已经具备基础版本，第二期已经开始加入 AgentForge Eval，用来评估每次工作流质量。下一步可以把多次评估结果聚合成 benchmark 面板。
+HTML 报告已经具备基础版本，第二期加入 AgentForge Eval，第三期加入 Subagent、MCP Adapter、Memory 和 Observability。下一步可以把这些能力整合成一个 benchmark/dashboard 面板。
 
 ## 第五步：简历表达
 

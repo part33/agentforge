@@ -89,6 +89,53 @@ function renderSources(run) {
   return sources.map((source) => `- [${source.title ?? source.url}](${source.url}) - ${source.summary ?? ""}`).join("\n");
 }
 
+function renderSubagents(run) {
+  const assignments = run.subagentAssignments ?? [];
+  if (!assignments.length) {
+    return "No subagent assignments recorded.";
+  }
+  return assignments
+    .map((item) => `- ${item.roleName} -> ${item.taskId}: ${item.taskTitle} [${item.status}]`)
+    .join("\n");
+}
+
+function renderMemory(run) {
+  const summary = run.memorySummary;
+  if (!summary) {
+    return "No memory summary recorded.";
+  }
+  return [
+    `- Project knowledge: ${summary.projectKnowledge ?? 0}`,
+    `- User preferences: ${summary.userPreferences ?? 0}`,
+    `- Rules: ${summary.rules ?? 0}`,
+    `- Updated: ${summary.updatedAt ?? "n/a"}`,
+  ].join("\n");
+}
+
+function renderMcp(run) {
+  const bridge = run.mcpBridge;
+  if (!bridge?.tools?.length) {
+    return "No MCP bridge configured.";
+  }
+  return bridge.tools.map((tool) => `- \`${tool.piToolName}\` -> ${tool.mcpServerId}/${tool.mcpToolName}`).join("\n");
+}
+
+function renderObservability(run) {
+  const summary = run.observabilitySummary;
+  if (!summary) {
+    return "No observability summary recorded.";
+  }
+  return [
+    `- Events: ${summary.eventCount}`,
+    `- Tool calls: ${summary.toolCallCount}`,
+    `- Blocked tool calls: ${summary.blockedToolCallCount}`,
+    `- Verification commands: ${summary.verificationCount}`,
+    `- Failed verification commands: ${summary.failedVerificationCount}`,
+    `- Estimated tokens: ${summary.estimatedTokens}`,
+    `- Estimated cost USD: ${summary.estimatedCostUsd}`,
+  ].join("\n");
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -169,6 +216,10 @@ export function renderHtmlReport(run) {
   const policyEvents = run.policyEvents ?? [];
   const events = run.events ?? [];
   const plan = run.planArtifact;
+  const subagentAssignments = run.subagentAssignments ?? [];
+  const mcpTools = run.mcpBridge?.tools ?? [];
+  const memorySummary = run.memorySummary;
+  const observabilitySummary = run.observabilitySummary;
   const passedCount = verificationResults.filter((result) => result.status === "passed").length;
   const failedCount = verificationResults.filter((result) => result.status === "failed").length;
 
@@ -299,6 +350,10 @@ export function renderHtmlReport(run) {
         <div class="metric"><span>任务数</span><strong>${tasks.length}</strong></div>
         <div class="metric"><span>来源数</span><strong>${sources.length}</strong></div>
         <div class="metric"><span>验证</span><strong>${passedCount}/${verificationResults.length}</strong></div>
+        <div class="metric"><span>Subagents</span><strong>${subagentAssignments.length}</strong></div>
+        <div class="metric"><span>MCP tools</span><strong>${mcpTools.length}</strong></div>
+        <div class="metric"><span>Tool calls</span><strong>${observabilitySummary?.toolCallCount ?? run.toolCallLogs?.length ?? 0}</strong></div>
+        <div class="metric"><span>Memory</span><strong>${memorySummary ? "on" : "off"}</strong></div>
       </div>
       <h3>基础信息</h3>
       <ul>
@@ -354,6 +409,47 @@ export function renderHtmlReport(run) {
     </section>
 
     <section>
+      <h2>Subagent 派发</h2>
+      ${renderHtmlList(subagentAssignments, (item) => `<strong>${escapeHtml(item.roleName)}</strong> -> ${escapeHtml(item.taskId)}：${escapeHtml(item.taskTitle)} <span class="pill ${statusClass(item.status)}">${escapeHtml(item.status)}</span>`, "暂无 Subagent 派发")}
+    </section>
+
+    <section>
+      <h2>Memory</h2>
+      ${
+        memorySummary
+          ? `<ul>
+              <li>项目知识：${escapeHtml(memorySummary.projectKnowledge ?? 0)}</li>
+              <li>用户偏好：${escapeHtml(memorySummary.userPreferences ?? 0)}</li>
+              <li>常用规则：${escapeHtml(memorySummary.rules ?? 0)}</li>
+              <li>更新时间：${escapeHtml(memorySummary.updatedAt ?? "n/a")}</li>
+            </ul>`
+          : `<p class="empty">暂无 Memory 摘要</p>`
+      }
+    </section>
+
+    <section>
+      <h2>MCP Bridge</h2>
+      ${renderHtmlList(mcpTools, (tool) => `<code>${escapeHtml(tool.piToolName)}</code> -> ${escapeHtml(tool.mcpServerId)}/${escapeHtml(tool.mcpToolName)}`, "暂无 MCP bridge")}
+    </section>
+
+    <section>
+      <h2>Observability</h2>
+      ${
+        observabilitySummary
+          ? `<ul>
+              <li>事件数：${escapeHtml(observabilitySummary.eventCount)}</li>
+              <li>工具调用：${escapeHtml(observabilitySummary.toolCallCount)}</li>
+              <li>被阻止工具调用：${escapeHtml(observabilitySummary.blockedToolCallCount)}</li>
+              <li>验证命令：${escapeHtml(observabilitySummary.verificationCount)}</li>
+              <li>失败验证：${escapeHtml(observabilitySummary.failedVerificationCount)}</li>
+              <li>估算 token：${escapeHtml(observabilitySummary.estimatedTokens)}</li>
+              <li>估算成本 USD：${escapeHtml(observabilitySummary.estimatedCostUsd)}</li>
+            </ul>`
+          : `<p class="empty">暂无 Observability 摘要</p>`
+      }
+    </section>
+
+    <section>
       <h2>策略事件</h2>
       ${renderHtmlList(policyEvents, (event) => `<span class="pill ${statusClass(event.decision)}">${escapeHtml(event.decision)}</span> ${escapeHtml(event.reason ?? event.command ?? "")}`, "暂无策略事件")}
     </section>
@@ -405,6 +501,22 @@ export function renderMarkdownReport(run) {
     "",
     renderSources(run),
     "",
+    `## Subagents`,
+    "",
+    renderSubagents(run),
+    "",
+    `## Memory`,
+    "",
+    renderMemory(run),
+    "",
+    `## MCP Bridge`,
+    "",
+    renderMcp(run),
+    "",
+    `## Observability`,
+    "",
+    renderObservability(run),
+    "",
     `## Policy Events`,
     "",
     renderList((run.policyEvents ?? []).map((event) => `${event.decision}: ${event.reason ?? event.command ?? ""}`)),
@@ -431,6 +543,12 @@ export function createReportMetadata(run, paths = {}) {
     sources: run.sources ?? [],
     verificationResults: run.verificationResults ?? [],
     policyEvents: run.policyEvents ?? [],
+    toolCallLogs: run.toolCallLogs ?? [],
+    subagentAssignments: run.subagentAssignments ?? [],
+    subagentRoles: run.subagentRoles ?? [],
+    mcpBridge: run.mcpBridge,
+    memorySummary: run.memorySummary,
+    observabilitySummary: run.observabilitySummary,
     eventCount: run.events?.length ?? 0,
     reportPaths: paths,
   };

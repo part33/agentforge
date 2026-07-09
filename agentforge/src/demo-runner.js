@@ -3,13 +3,21 @@ import { dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { writeWorkflowReport } from "./report-generator.js";
+import { createMcpServerManifest, createPiToolBridge } from "./mcp-adapter.js";
+import { createToolCallLog, summarizeObservability } from "./observability.js";
+import { assignSubagents } from "./subagents.js";
 import {
   applyApprovalDecision,
+  applyMcpBridge,
+  applyMemorySummary,
+  applyObservabilitySummary,
   applyPlanArtifact,
   applyReportPaths,
   applyVerificationResults,
   appendPolicyEvent,
   appendResearchSources,
+  appendToolCallLog,
+  applySubagentAssignments,
   createWorkflowRun,
   transitionWorkflow,
 } from "./workflow-store.js";
@@ -69,6 +77,28 @@ export function createDemoWorkflowRun(options = {}) {
   run = transitionWorkflow(run, "waiting_approval", { summary: "等待人工审批计划。" });
   run = applyApprovalDecision(run, "approved", { note: "演示流程中批准该计划。" });
   run = transitionWorkflow(run, "executing", { summary: "根据计划修改任务模型、过滤逻辑和测试。" });
+  run = applySubagentAssignments(run, assignSubagents(run));
+  run = applyMemorySummary(run, {
+    projectKnowledge: 1,
+    userPreferences: 1,
+    rules: 1,
+    updatedAt: "2026-07-09T00:00:00.000Z",
+  });
+  run = applyMcpBridge(
+    run,
+    createPiToolBridge(
+      createMcpServerManifest({
+        servers: [
+          {
+            id: "repo",
+            name: "Repository MCP",
+            command: "configured-externally",
+            tools: [{ name: "search", description: "Search repository context." }],
+          },
+        ],
+      }),
+    ),
+  );
   run = appendResearchSources(run, [
     {
       id: "src-demo-readme",
@@ -86,6 +116,18 @@ export function createDemoWorkflowRun(options = {}) {
     decision: "allow",
     reason: "允许读取和测试 demo app 文件。",
   });
+  run = appendToolCallLog(
+    run,
+    createToolCallLog({
+      toolName: "shell",
+      toolCallId: "demo-policy-1",
+      input: { command: "npm.cmd test" },
+      decision: { decision: "allow" },
+      status: "allowed",
+      startedAt: "2026-07-09T00:00:01.000Z",
+      completedAt: "2026-07-09T00:00:01.210Z",
+    }),
+  );
   run = transitionWorkflow(run, "verifying", { summary: "运行测试和构建命令。" });
   run = applyVerificationResults(run, [
     { command: "npm.cmd test", status: "passed", exitCode: 0, summary: "5 tests passed", durationMs: 210 },
@@ -99,6 +141,7 @@ export function createDemoWorkflowRun(options = {}) {
     completed: true,
     summary: "演示报告生成完成。",
   });
+  run = applyObservabilitySummary(run, summarizeObservability(run));
   return run;
 }
 

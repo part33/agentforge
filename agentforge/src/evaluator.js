@@ -122,6 +122,58 @@ export function evaluateWorkflowRun(run, options = {}) {
     ),
   );
 
+  checks.push(
+    createCheck(
+      "subagents.assigned",
+      "Subagent 任务派发",
+      (run.subagentAssignments ?? []).length > 0,
+      10,
+      10,
+      `assignments=${run.subagentAssignments?.length ?? 0}`,
+      "运行 /workflow-subagents，把任务派给 scout/planner/worker/reviewer。",
+    ),
+  );
+
+  checks.push(
+    createCheck(
+      "mcp.bridge",
+      "MCP 工具桥接",
+      (run.mcpBridge?.tools ?? []).length > 0,
+      10,
+      10,
+      `tools=${run.mcpBridge?.tools?.length ?? 0}`,
+      "运行 /workflow-mcp <server.tool>，记录 MCP 到 Pi 的工具桥接配置。",
+    ),
+  );
+
+  checks.push(
+    createCheck(
+      "memory.summary",
+      "项目记忆沉淀",
+      Boolean(run.memorySummary),
+      10,
+      10,
+      run.memorySummary
+        ? `knowledge=${run.memorySummary.projectKnowledge ?? 0}, preferences=${run.memorySummary.userPreferences ?? 0}, rules=${run.memorySummary.rules ?? 0}`
+        : "没有 memorySummary",
+      "运行 /workflow-memory knowledge|preference|rule <text>，沉淀项目知识、用户偏好或规则。",
+    ),
+  );
+
+  checks.push(
+    createCheck(
+      "observability.summary",
+      "可观测性摘要",
+      Boolean(run.observabilitySummary),
+      10,
+      10,
+      run.observabilitySummary
+        ? `events=${run.observabilitySummary.eventCount}, toolCalls=${run.observabilitySummary.toolCallCount}`
+        : "没有 observabilitySummary",
+      "运行 /workflow-observe，生成工具调用、阶段和验证的观测摘要。",
+    ),
+  );
+
   const maxScore = checks.reduce((sum, check) => sum + check.maxPoints, 0);
   const score = checks.reduce((sum, check) => sum + check.points, 0);
   const normalizedScore = Math.round((score / maxScore) * 100);

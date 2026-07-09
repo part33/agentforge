@@ -47,6 +47,11 @@ export function createWorkflowRun(goal, options = {}) {
     sources: [],
     verificationResults: [],
     policyEvents: [],
+    toolCallLogs: [],
+    subagentAssignments: [],
+    mcpBridge: undefined,
+    memorySummary: undefined,
+    observabilitySummary: undefined,
     events: [
       {
         id: randomUUID(),
@@ -226,6 +231,25 @@ export function appendPolicyEvent(run, policyEvent) {
   };
 }
 
+export function appendToolCallLog(run, toolCallLog) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    toolCallLogs: [...(run.toolCallLogs ?? []), toolCallLog],
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "tool_call.logged",
+        timestamp: now,
+        message: `Tool call logged: ${toolCallLog.toolName}.`,
+        data: toolCallLog,
+      },
+    ],
+  };
+}
+
 export function appendResearchSources(run, sources) {
   const now = new Date().toISOString();
   const existingUrls = new Set((run.sources ?? []).map((source) => source.url));
@@ -253,6 +277,83 @@ export function appendResearchSources(run, sources) {
   };
 }
 
+export function applySubagentAssignments(run, bundle) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    subagentAssignments: bundle.assignments ?? [],
+    subagentRoles: bundle.roles ?? [],
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "subagents.assigned",
+        timestamp: now,
+        message: `Assigned ${bundle.assignments?.length ?? 0} task(s) to subagents.`,
+        data: bundle,
+      },
+    ],
+  };
+}
+
+export function applyMcpBridge(run, bridge) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    mcpBridge: bridge,
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "mcp.bridge_configured",
+        timestamp: now,
+        message: `Configured ${bridge.tools?.length ?? 0} MCP tool bridge(s).`,
+        data: bridge,
+      },
+    ],
+  };
+}
+
+export function applyMemorySummary(run, summary) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    memorySummary: summary,
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "memory.updated",
+        timestamp: now,
+        message: "Memory summary updated.",
+        data: summary,
+      },
+    ],
+  };
+}
+
+export function applyObservabilitySummary(run, summary) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    observabilitySummary: summary,
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "observability.summarized",
+        timestamp: now,
+        message: "Observability summary generated.",
+        data: summary,
+      },
+    ],
+  };
+}
+
 export function summarizeWorkflow(run) {
   return {
     id: run.id,
@@ -262,6 +363,7 @@ export function summarizeWorkflow(run) {
     taskCount: run.tasks.length,
     sourceCount: run.sources.length,
     verificationCount: run.verificationResults.length,
+    toolCallCount: run.toolCallLogs?.length ?? 0,
     approvalDecision: run.approval?.decision,
     updatedAt: run.updatedAt,
   };

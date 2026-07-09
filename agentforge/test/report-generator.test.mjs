@@ -32,6 +32,18 @@ function createReportableRun() {
     { command: "npm test", status: "passed", exitCode: 0, summary: "1 test passed", durationMs: 50 },
   ]);
   run.sources = [{ title: "Node Test Runner", url: "https://nodejs.org/api/test.html", summary: "Node test docs." }];
+  run.subagentAssignments = [{ roleName: "Worker", taskId: "step-1", taskTitle: "Update model", status: "done" }];
+  run.mcpBridge = { tools: [{ piToolName: "mcp.repo.search", mcpServerId: "repo", mcpToolName: "search" }] };
+  run.memorySummary = { projectKnowledge: 1, userPreferences: 1, rules: 1, updatedAt: "2026-07-09T00:00:00.000Z" };
+  run.observabilitySummary = {
+    eventCount: 10,
+    toolCallCount: 1,
+    blockedToolCallCount: 0,
+    verificationCount: 1,
+    failedVerificationCount: 0,
+    estimatedTokens: 0,
+    estimatedCostUsd: 0,
+  };
   return run;
 }
 
@@ -43,6 +55,9 @@ test("renderMarkdownReport includes core sections", () => {
   assert.match(markdown, /npm test/);
   assert.match(markdown, /Fixtures may need updates/);
   assert.match(markdown, /Node Test Runner/);
+  assert.match(markdown, /Worker -> step-1/);
+  assert.match(markdown, /mcp.repo.search/);
+  assert.match(markdown, /Tool calls: 1/);
 });
 
 test("createReportMetadata extracts machine-readable fields", () => {
@@ -51,6 +66,9 @@ test("createReportMetadata extracts machine-readable fields", () => {
   assert.equal(metadata.workflowId, "wf-test");
   assert.equal(metadata.verificationResults.length, 1);
   assert.equal(metadata.reportPaths.markdown, "report.md");
+  assert.equal(metadata.subagentAssignments.length, 1);
+  assert.equal(metadata.memorySummary.projectKnowledge, 1);
+  assert.equal(metadata.observabilitySummary.toolCallCount, 1);
 });
 
 test("renderHtmlReport includes dashboard sections and escapes content", () => {
@@ -63,6 +81,9 @@ test("renderHtmlReport includes dashboard sections and escapes content", () => {
   assert.match(html, /运行摘要/);
   assert.match(html, /验证结果/);
   assert.match(html, /调研来源/);
+  assert.match(html, /Subagent 派发/);
+  assert.match(html, /MCP Bridge/);
+  assert.match(html, /Observability/);
   assert.match(html, /Add &lt;priority&gt; filtering/);
   assert.doesNotMatch(html, /Add <priority> filtering/);
 });

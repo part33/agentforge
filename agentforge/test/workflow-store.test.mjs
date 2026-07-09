@@ -6,11 +6,16 @@ import test from "node:test";
 
 import {
   applyApprovalDecision,
+  applyMemorySummary,
+  applyMcpBridge,
+  applyObservabilitySummary,
   applyPlanArtifact,
   applyReportPaths,
+  applySubagentAssignments,
   applyVerificationResults,
   appendPolicyEvent,
   appendResearchSources,
+  appendToolCallLog,
   createWorkflowRun,
   summarizeWorkflow,
   transitionWorkflow,
@@ -66,6 +71,7 @@ test("summarizeWorkflow returns session-safe state", () => {
     "sourceCount",
     "status",
     "taskCount",
+    "toolCallCount",
     "updatedAt",
     "verificationCount",
   ]);
@@ -148,4 +154,19 @@ test("appendResearchSources deduplicates sources and records event", () => {
   assert.equal(next.sources.length, 1);
   assert.equal(next.events.at(-1).type, "research.sources_added");
   assert.equal(next.events.at(-1).data.sourceCount, 1);
+});
+
+test("platform state helpers store subagents, MCP, memory, observability, and tool logs", () => {
+  let run = createWorkflowRun("Goal", { id: "wf-test" });
+  run = appendToolCallLog(run, { toolName: "shell", toolCallId: "call-1" });
+  run = applySubagentAssignments(run, { roles: [{ id: "worker" }], assignments: [{ taskId: "step-1" }] });
+  run = applyMcpBridge(run, { tools: [{ piToolName: "mcp.repo.search" }] });
+  run = applyMemorySummary(run, { projectKnowledge: 1, userPreferences: 0, rules: 1 });
+  run = applyObservabilitySummary(run, { eventCount: 4, toolCallCount: 1 });
+
+  assert.equal(run.toolCallLogs.length, 1);
+  assert.equal(run.subagentAssignments.length, 1);
+  assert.equal(run.mcpBridge.tools.length, 1);
+  assert.equal(run.memorySummary.projectKnowledge, 1);
+  assert.equal(run.observabilitySummary.toolCallCount, 1);
 });
