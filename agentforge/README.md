@@ -67,6 +67,14 @@ npm.cmd run demo:report
 
 它会在当前目录的 `.agentforge/reports` 下生成 Markdown、JSON 和 HTML 三种报告。
 
+第二期的质量评估可以运行：
+
+```powershell
+npm.cmd run demo:evaluate
+```
+
+它会生成 demo 报告，并在 `.agentforge/evaluations` 下输出评估结果。
+
 ## 项目结构
 
 - `bin/agentforge.mjs`：AgentForge 命令行入口，负责启动 Pi 并加载扩展。
@@ -82,6 +90,8 @@ npm.cmd run demo:report
 更详细的架构说明见 `docs/architecture.md`。
 
 项目叙事和简历讲法见 `docs/project-story.md`。
+
+第二期说明见 `docs/phase-two.md`。
 
 ## 开发验证
 

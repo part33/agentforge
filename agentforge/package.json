@@ -9,7 +9,8 @@
   "scripts": {
     "test": "node --test",
     "smoke": "node ./bin/agentforge.mjs --version",
-    "demo:report": "node ./src/demo-runner.js"
+    "demo:report": "node ./src/demo-runner.js",
+    "demo:evaluate": "node ./src/eval-runner.js"
   },
   "keywords": [
     "agent",
