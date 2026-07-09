@@ -59,6 +59,14 @@ Add priority filtering to the task board app.
 
 完整演示步骤见 `docs/demo.md`。
 
+如果只是想先生成一份可展示的样例报告，可以运行：
+
+```powershell
+npm.cmd run demo:report
+```
+
+它会在当前目录的 `.agentforge/reports` 下生成 Markdown、JSON 和 HTML 三种报告。
+
 ## 项目结构
 
 - `bin/agentforge.mjs`：AgentForge 命令行入口，负责启动 Pi 并加载扩展。
@@ -72,6 +80,8 @@ Add priority filtering to the task board app.
 - `examples/demo-task-board`：用于简历和面试展示的可复现实例项目。
 
 更详细的架构说明见 `docs/architecture.md`。
+
+项目叙事和简历讲法见 `docs/project-story.md`。
 
 ## 开发验证
 

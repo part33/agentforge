@@ -24,16 +24,16 @@ node ..\..\bin\agentforge.mjs
 
 跑完后重点看 `.agentforge/reports` 里的 Markdown 报告。这份报告就是你后面做截图、写项目说明、面试讲解的材料。
 
-## 第二步：补一个中文项目说明页
+## 第二步：阅读中文项目说明页
 
-建议新增一份 `docs/project-story.md`，内容不用很长，回答四个问题：
+已经新增 `docs/project-story.md`。这份文档回答了四个问题：
 
 - 我为什么做这个项目？
 - Pi 原项目解决了什么，AgentForge 扩展了什么？
 - 我具体实现了哪些模块？
 - 这个项目比普通 Coding Agent demo 多了什么工程价值？
 
-这份文档可以直接变成简历项目介绍。
+这份文档可以直接改写成简历项目介绍。
 
 ## 第三步：录制或截图演示材料
 
@@ -49,11 +49,11 @@ node ..\..\bin\agentforge.mjs
 
 如果还想继续增强，优先做这三个方向之一：
 
-1. 把报告做成 HTML 页面。
+1. 给 HTML 报告增加截图和在线预览入口。
 2. 给 workflow 状态做一个可视化 timeline。
 3. 给 research connector 接入真实搜索 API 或 GitHub 搜索。
 
-我推荐先做第 1 个：HTML 报告最容易展示，也最像一个完整产品。
+HTML 报告已经具备基础版本，下一步可以围绕展示效果继续打磨。
 
 ## 第五步：简历表达
 

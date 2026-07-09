@@ -32,6 +32,14 @@ npm.cmd run build
 node ..\..\bin\agentforge.mjs
 ```
 
+如果你只是想先看最终报告长什么样，可以在 `agentforge` 目录运行：
+
+```powershell
+npm.cmd run demo:report
+```
+
+这会直接生成一份样例 HTML 报告，适合先截图或确认展示效果。
+
 ## 跑完整流程
 
 进入 Pi 后输入：

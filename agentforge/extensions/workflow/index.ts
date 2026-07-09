@@ -363,15 +363,14 @@ async function reportLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandConte
   mirrorWorkflow(pi, run);
   setWorkflowStatus(ctx, run);
 
-  const reportPaths = await writeWorkflowReport(run, ctx.cwd);
-  run = await store.loadRun(run.id);
-  run = applyReportPaths(run, reportPaths);
   run = transitionWorkflow(run, "done", {
     status: "done",
     phaseStatus: "done",
     completed: true,
     summary: "Workflow report generated and workflow completed.",
   });
+  const reportPaths = await writeWorkflowReport(run, ctx.cwd);
+  run = applyReportPaths(run, reportPaths);
   await store.updateRun(run);
   mirrorWorkflow(pi, run);
   setWorkflowStatus(ctx, run);
