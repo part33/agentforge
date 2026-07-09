@@ -166,6 +166,28 @@ export function applyApprovalDecision(run, decision, options = {}) {
   };
 }
 
+export function applyVerificationResults(run, results) {
+  const now = new Date().toISOString();
+  return {
+    ...run,
+    verificationResults: results,
+    updatedAt: now,
+    events: [
+      ...run.events,
+      {
+        id: randomUUID(),
+        type: "verification.completed",
+        timestamp: now,
+        message: `Verification completed with ${results.length} command(s).`,
+        data: {
+          passed: results.filter((result) => result.status === "passed").length,
+          failed: results.filter((result) => result.status === "failed").length,
+        },
+      },
+    ],
+  };
+}
+
 export function summarizeWorkflow(run) {
   return {
     id: run.id,

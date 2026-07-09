@@ -41,6 +41,16 @@ The third slice adds the approval gate:
 - revision requests move back to `planning`
 - cancelled workflows move to `cancelled`
 
+## Fourth Slice
+
+The fourth slice adds verification execution:
+
+- `detectVerificationCommands(cwd)` reads known scripts from `package.json`
+- `runVerificationCommand()` executes commands and captures exit code, duration, stdout/stderr summary, and timeout state
+- `/workflow-verify` runs plan-defined verification commands or falls back to detected package scripts
+- verification results are persisted in workflow state
+- workflow moves from `executing` or `verifying` to `reviewing` after verification completes
+
 ## Verification
 
 PowerShell may block `npm.ps1` on Windows. Use `npm.cmd`:
@@ -60,11 +70,11 @@ node ./bin/agentforge.mjs --help
 
 ## Next Slice
 
-Implement the verification runner:
+Implement the report generator:
 
-- Detect verification commands from `package.json`.
-- Store suggested commands during Explore/Plan.
-- Execute approved commands.
-- Capture exit code, duration, and output summary.
+- Create `.agentforge/reports/`.
+- Generate Markdown and JSON reports.
+- Include goal, plan, approval, verification, events, and follow-up notes.
+- Add `/workflow-report`.
 
-The goal is to prove that AgentForge can verify changes instead of only claiming completion.
+The goal is to create a durable portfolio artifact after a workflow run.

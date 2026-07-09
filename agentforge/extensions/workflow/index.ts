@@ -1,7 +1,9 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { parsePlanArtifactFromText, planArtifactToTasks } from "../../src/artifacts.js";
+import { detectVerificationCommands, runVerificationCommands } from "../../src/verification-runner.js";
 import {
   applyApprovalDecision,
+  applyVerificationResults,
   appendWorkflowEvent,
   applyPlanArtifact,
   summarizeWorkflow,
@@ -262,6 +264,61 @@ async function approveLatestWorkflowFromText(pi: ExtensionAPI, ctx: ExtensionCom
   ctx.ui.notify(`AgentForge approval decision recorded: ${decision}.`, "info");
 }
 
+async function verifyLatestWorkflow(pi: ExtensionAPI, ctx: ExtensionCommandContext) {
+  const store = new WorkflowStore(ctx.cwd);
+  let run = await store.loadLatestRun();
+  if (!run) {
+    ctx.ui.notify("No AgentForge workflow found for this project.", "warning");
+    return;
+  }
+  if (!["executing", "verifying"].includes(run.currentPhase)) {
+    ctx.ui.notify(`Latest workflow is in ${run.currentPhase}; expected executing or verifying.`, "warning");
+    return;
+  }
+
+  let commands = run.planArtifact?.verificationCommands ?? [];
+  if (!Array.isArray(commands) || commands.length === 0) {
+    commands = await detectVerificationCommands(ctx.cwd);
+  }
+
+  if (!commands.length) {
+    run = appendWorkflowEvent(run, {
+      type: "verification.skipped",
+      message: "No verification commands were found.",
+      data: {},
+    });
+    await store.updateRun(run);
+    mirrorWorkflow(pi, run);
+    setWorkflowStatus(ctx, run);
+    ctx.ui.notify("No verification commands found.", "warning");
+    return;
+  }
+
+  run = transitionWorkflow(run, "verifying", {
+    summary: `Running ${commands.length} verification command(s).`,
+  });
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+
+  ctx.ui.notify(`AgentForge running verification: ${commands.map((item: any) => item.command).join(", ")}`, "info");
+  const results = await runVerificationCommands(commands, { cwd: ctx.cwd });
+  run = await store.loadRun(run.id);
+  run = applyVerificationResults(run, results);
+  run = transitionWorkflow(run, "reviewing", {
+    summary: "Verification completed; review phase started.",
+  });
+  await store.updateRun(run);
+  mirrorWorkflow(pi, run);
+  setWorkflowStatus(ctx, run);
+
+  const failed = results.filter((result: any) => result.status === "failed").length;
+  ctx.ui.notify(
+    failed ? `Verification completed with ${failed} failure(s).` : "Verification passed.",
+    failed ? "warning" : "info",
+  );
+}
+
 async function handlePlanningMessage(pi: ExtensionAPI, ctx: ExtensionContext, message: any) {
   const store = new WorkflowStore(ctx.cwd);
   let run = await store.loadLatestRun();
@@ -318,6 +375,13 @@ export default function agentForgeWorkflow(pi: ExtensionAPI) {
     description: "Approve, revise, or cancel the latest AgentForge plan",
     handler: async (args, ctx) => {
       await approveLatestWorkflowFromText(pi, ctx, args);
+    },
+  });
+
+  pi.registerCommand("workflow-verify", {
+    description: "Run verification commands for the latest AgentForge workflow",
+    handler: async (_args, ctx) => {
+      await verifyLatestWorkflow(pi, ctx);
     },
   });
 

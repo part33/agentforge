@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   applyApprovalDecision,
   applyPlanArtifact,
+  applyVerificationResults,
   createWorkflowRun,
   summarizeWorkflow,
   transitionWorkflow,
@@ -100,4 +101,15 @@ test("applyApprovalDecision rejects non-approval phases", () => {
   const run = transitionWorkflow(createWorkflowRun("Goal", { id: "wf-test" }), "planning");
 
   assert.throws(() => applyApprovalDecision(run, "approved"), /Cannot apply approval decision/);
+});
+
+test("applyVerificationResults stores results and records event", () => {
+  const run = transitionWorkflow(createWorkflowRun("Goal", { id: "wf-test" }), "verifying");
+  const results = [{ command: "npm test", status: "passed", exitCode: 0, summary: "ok", durationMs: 10 }];
+
+  const next = applyVerificationResults(run, results);
+
+  assert.equal(next.verificationResults.length, 1);
+  assert.equal(next.events.at(-1).type, "verification.completed");
+  assert.equal(next.events.at(-1).data.passed, 1);
 });
