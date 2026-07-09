@@ -1,76 +1,86 @@
-# AgentForge Architecture
+# AgentForge 架构说明
 
-AgentForge is built as an enhanced distribution around Pi instead of a fork of Pi core. That keeps the project focused: Pi owns the agent runtime, tool execution, and TUI; AgentForge owns the software engineering workflow product layer.
+AgentForge 不是直接魔改 Pi 核心，而是作为 Pi 外层的增强发行包存在。这样项目边界会更清楚：Pi 负责 Agent 运行时、工具执行和 TUI；AgentForge 负责软件工程场景里的工作流产品层。
 
-## Runtime Boundary
+## 运行边界
 
 ```text
 agentforge CLI
-  -> Pi executable
-    -> AgentForge workflow extension
-      -> workflow state, policy, verification, reports
+  -> Pi 可执行入口
+    -> AgentForge workflow 扩展
+      -> 工作流状态、策略、验证、报告
 ```
 
-The CLI resolves a Pi executable from `AGENTFORGE_PI_BIN`, the local cloned Pi scripts, or a global `pi` command. It passes the AgentForge extension through Pi's extension loading mechanism.
+命令行入口会依次尝试从这些地方找到 Pi：
 
-## Workflow State
+- `AGENTFORGE_PI_BIN` 环境变量。
+- 本地克隆的 Pi 脚本。
+- 全局安装的 `pi` 命令。
 
-`WorkflowStore` writes workflow runs to `.agentforge/workflows/*.json`. A run records:
+找到之后，它会把 AgentForge 的 workflow 扩展传给 Pi，让 Pi 启动时自动加载这套能力。
 
-- lifecycle phase and status
-- structured plan artifact
-- task list derived from plan steps
-- research sources
-- approval decision
-- verification results
-- policy events
-- final report paths
-- timeline events
+## 工作流状态
 
-The state machine is intentionally explicit so a workflow can be inspected, resumed, reported, or tested without a live agent session.
+`WorkflowStore` 会把每次 workflow 写到 `.agentforge/workflows/*.json`。
 
-## Extension Commands
+一次 workflow 会记录：
 
-The Pi extension exposes:
+- 当前生命周期阶段和状态。
+- 结构化计划 artifact。
+- 从计划步骤转换出来的任务列表。
+- 调研来源。
+- 用户审批结果。
+- 验证命令执行结果。
+- 工具调用策略事件。
+- 最终报告路径。
+- 时间线事件。
 
-- `/workflow <goal>`: creates a run and asks the model for a JSON plan artifact.
-- `/workflow-research <query or URL>`: collects and attaches source evidence.
-- `/workflow-status`: restores and displays current state.
-- `/workflow-approve approve|revise|cancel`: records human approval.
-- `/workflow-verify`: runs plan-defined or detected verification commands.
-- `/workflow-report`: writes Markdown and JSON evidence reports.
+这个状态机是故意写得比较显式的。原因是：Agent 工作流不能只存在于聊天窗口里，它应该能被检查、恢复、测试和复盘。
+
+## 扩展命令
+
+AgentForge 在 Pi 里注册了这些命令：
+
+- `/workflow <目标>`：创建一次工作流，并要求模型先输出结构化计划。
+- `/workflow-research <搜索问题或 URL>`：收集调研来源并挂到当前工作流。
+- `/workflow-status`：查看当前工作流状态。
+- `/workflow-approve approve|revise|cancel`：记录人工审批结果。
+- `/workflow-verify`：运行计划里声明的验证命令，或者自动识别项目中的验证命令。
+- `/workflow-report`：输出 Markdown 和 JSON 报告。
 
 ## Hooks
 
-AgentForge uses Pi hooks for workflow automation:
+AgentForge 使用了 Pi 的 hooks 来实现自动化：
 
-- `session_start`: restore the latest workflow status.
-- `message_end`: parse the assistant's planning artifact and transition to approval.
-- `tool_call`: evaluate risky tool calls through the policy engine.
+- `session_start`：恢复最近一次工作流状态。
+- `message_end`：在计划阶段解析 assistant 输出的结构化计划，并切到等待审批。
+- `tool_call`：在工具调用前经过策略引擎判断，决定允许、确认或阻止。
 
 ## Research Connector
 
-The research connector is provider-based. The default provider extracts manual URLs from the query, while the interface can later be backed by search APIs. Page reading and fetch are injectable, so tests do not require network access.
+调研模块采用 provider 设计。默认 provider 会从用户输入里提取 URL；以后可以接入搜索 API、GitHub Search、文档搜索等来源。
 
-Returned sources use a stable shape:
+网页读取和 fetch 都是可注入的，所以测试不依赖真实网络。
+
+调研来源的数据结构大致是：
 
 ```json
 {
   "id": "src-...",
-  "title": "Source title",
+  "title": "来源标题",
   "url": "https://example.com",
-  "snippet": "Short extracted text",
-  "summary": "Report-ready summary",
+  "snippet": "短摘录",
+  "summary": "适合进入报告的摘要",
   "usedFor": "Research for: goal",
   "fetchedAt": "2026-07-09T00:00:00.000Z"
 }
 ```
 
-## Report Output
+## 报告输出
 
-Reports are written under `.agentforge/reports`:
+报告会写入 `.agentforge/reports`：
 
-- Markdown for humans and portfolio demos.
-- JSON metadata for automation and evaluation.
+- Markdown：给人看，适合复盘和演示。
+- JSON：给程序看，适合后续做自动评估或可视化。
 
-This is the main portfolio differentiator: the agent does not just modify code; it leaves a reviewable execution record.
+这是 AgentForge 最适合写进简历的差异点：它不只是让 Agent 改代码，而是让 Agent 留下一份可审计、可复盘、可展示的工程记录。

@@ -1,49 +1,49 @@
 # AgentForge
 
-AgentForge is an enhanced Pi distribution for software engineering agent workflows. It keeps Pi as the runtime and adds a productized workflow layer for planning, approval, verification, source-backed reports, and policy controls.
+AgentForge 是一个基于 Pi 扩展系统做出来的软件工程 Agent 工作流增强发行包。Pi 负责底层 Agent 运行、工具调用和终端交互，AgentForge 在它上面增加一层更适合项目开发的工作流：调研、计划、审批、执行、验证、复盘和报告。
 
 ```text
-Explore -> Research -> Plan -> Approve -> Execute -> Verify -> Review -> Report
+探索 -> 调研 -> 计划 -> 审批 -> 执行 -> 验证 -> 复盘 -> 报告
 ```
 
-## Why This Project Exists
+## 这个项目解决什么问题
 
-Most coding agents are impressive in a live session but hard to explain afterward. AgentForge turns the session into a durable workflow:
+普通 Coding Agent 很容易给人一种“现场很厉害，但事后说不清”的感觉。AgentForge 的目标是让一次 Agent 开发过程变成可以保存、可以复盘、可以展示的工程流程：
 
-- A structured plan artifact before code changes.
-- A human approval gate before execution.
-- Policy checks around risky tool calls.
-- Verification commands captured as evidence.
-- Markdown and JSON reports for review, demo, and resume storytelling.
+- 改代码前先生成结构化计划。
+- 执行前加入人工审批关卡。
+- 对危险工具调用做策略控制。
+- 自动记录测试、构建等验证结果。
+- 最后输出 Markdown 和 JSON 报告，方便复盘、演示和写进简历。
 
-## Commands
+## 快速使用
 
-Launch AgentForge with the workflow extension preloaded:
+启动带 AgentForge 扩展的 Pi：
 
 ```powershell
 node ./bin/agentforge.mjs
 ```
 
-Start a one-shot workflow:
+直接用一句目标启动工作流：
 
 ```powershell
 node ./bin/agentforge.mjs "Add priority filtering to the task board app"
 ```
 
-Inside Pi:
+进入 Pi 后可以使用这些命令：
 
 ```text
-/workflow <goal>
-/workflow-research <query or URL>
+/workflow <目标>
+/workflow-research <搜索问题或 URL>
 /workflow-status
 /workflow-approve approve
 /workflow-verify
 /workflow-report
 ```
 
-## Demo
+## 演示项目
 
-The repository includes a prepared demo app at `examples/demo-task-board`.
+仓库里带了一个准备好的演示项目：`examples/demo-task-board`。
 
 ```powershell
 cd examples/demo-task-board
@@ -51,43 +51,41 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Suggested demo goal:
+推荐演示任务：
 
 ```text
 Add priority filtering to the task board app.
 ```
 
-See `docs/demo.md` for a walkthrough.
+完整演示步骤见 `docs/demo.md`。
 
-## Architecture
+## 项目结构
 
-AgentForge is deliberately layered:
+- `bin/agentforge.mjs`：AgentForge 命令行入口，负责启动 Pi 并加载扩展。
+- `extensions/workflow/index.ts`：Pi 扩展，注册 AgentForge 的命令和 hooks。
+- `src/workflow-store.js`：工作流状态机和持久化。
+- `src/artifacts.js`：结构化计划的解析和校验。
+- `src/research-connector.js`：调研来源收集、网页读取、去重和摘要。
+- `src/policy-engine.js`：工具调用策略引擎。
+- `src/verification-runner.js`：自动识别并运行 test、lint、build 等验证命令。
+- `src/report-generator.js`：生成 Markdown 和 JSON 工作流报告。
+- `examples/demo-task-board`：用于简历和面试展示的可复现实例项目。
 
-- `bin/agentforge.mjs`: CLI wrapper that launches Pi with the AgentForge extension.
-- `extensions/workflow/index.ts`: Pi extension commands and hooks.
-- `src/workflow-store.js`: durable workflow state machine.
-- `src/artifacts.js`: structured plan artifact parsing and validation.
-- `src/research-connector.js`: source collection, page reading, deduplication, summaries.
-- `src/policy-engine.js`: deterministic allow/confirm/block policy decisions.
-- `src/verification-runner.js`: test/lint/build detection and execution.
-- `src/report-generator.js`: Markdown and JSON workflow reports.
-- `examples/demo-task-board`: reproducible portfolio demo target.
+更详细的架构说明见 `docs/architecture.md`。
 
-See `docs/architecture.md` for the deeper explanation.
+## 开发验证
 
-## Development
-
-PowerShell may block `npm.ps1` on Windows. Use `npm.cmd`:
+Windows PowerShell 可能会拦截 `npm.ps1`，建议使用 `npm.cmd`：
 
 ```powershell
 npm.cmd test
 npm.cmd run smoke
 ```
 
-## Resume Positioning
+## 简历写法
 
-Possible resume bullet:
+可以这样写：
 
 ```text
-Built AgentForge, a Pi-based software engineering agent workflow distribution with structured planning, approval gates, tool policy enforcement, automated verification, research source capture, and durable Markdown/JSON execution reports.
+AgentForge：基于 Pi 扩展系统开发的软件工程 Agent 工作流增强发行包，实现了结构化计划、人工审批、工具调用策略控制、自动化验证、调研来源记录和 Markdown/JSON 执行报告生成。
 ```

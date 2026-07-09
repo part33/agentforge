@@ -1,30 +1,30 @@
 # AgentForge Demo Task Board
 
-This small Node app is the prepared demo target for AgentForge.
+这是 AgentForge 自带的演示项目，用来展示一个真实但足够小的软件工程 Agent 工作流。
 
-## Baseline Behavior
+## 当前功能
 
-- Creates tasks with status, assignee, and tags.
-- Groups tasks into `todo`, `doing`, and `done` columns.
-- Filters tasks by status, assignee, or tag.
-- Runs with built-in Node test tooling.
+- 创建带有状态、负责人和标签的任务。
+- 把任务分组到 `todo`、`doing`、`done` 三列。
+- 支持按状态、负责人、标签过滤任务。
+- 使用 Node.js 内置测试框架，不需要额外依赖。
 
-## Demo Task
+## 推荐演示任务
 
-Ask AgentForge to implement:
+让 AgentForge 实现：
 
 ```text
 Add priority filtering to the task board app.
 ```
 
-Expected implementation shape:
+预期实现方向：
 
-- Add a `priority` field to tasks.
-- Validate supported priority values such as `low`, `medium`, and `high`.
-- Allow `filterTasks(tasks, { priority: "high" })`.
-- Update sample data and tests.
+- 给任务增加 `priority` 字段。
+- 校验 `low`、`medium`、`high` 等优先级。
+- 支持 `filterTasks(tasks, { priority: "high" })`。
+- 更新示例数据和测试。
 
-## Commands
+## 命令
 
 ```powershell
 npm.cmd test
